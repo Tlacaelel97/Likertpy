@@ -32,7 +32,7 @@ except RuntimeError as err:
 
 from Likertpy import Scale
 import Likertpy.colors as builtin_colors
-import plot_likert.interval as interval_helper
+from Likertpy import Interval as interval_helper
 
 HIDE_EXCESSIVE_TICK_LABELS = True
 PADDING_LEFT = 0.02  # fraction of the total width to use as padding
