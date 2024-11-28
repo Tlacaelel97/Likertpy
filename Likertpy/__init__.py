@@ -1,2 +1,2 @@
 from .leer_datos import FileRead
-from .plot import createPlot
+from .scales import Scale
