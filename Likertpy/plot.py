@@ -32,7 +32,7 @@ except RuntimeError as err:
 
 from Likertpy import Scale
 import Likertpy.colors as builtin_colors
-from Likertpy import Interval as interval_helper
+from Likertpy import Interval 
 
 HIDE_EXCESSIVE_TICK_LABELS = True
 PADDING_LEFT = 0.02  # fraction of the total width to use as padding
@@ -147,6 +147,7 @@ def plot_counts(
     max_width = int(round(padded_counts.sum(axis=1).max()))
     if xtick_interval is None:
         num_ticks = axes.xaxis.get_tick_space()
+        interval_helper = Interval()
         interval = interval_helper.get_interval_for_scale(num_ticks, max_width)
     else:
         interval = xtick_interval
