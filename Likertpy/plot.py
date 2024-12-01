@@ -12,6 +12,7 @@ Note:
 the data must be strings
 for a float: scores.applymap(int).applymap(str)
 """
+
 import logging
 import typing
 from warnings import warn
@@ -32,7 +33,7 @@ except RuntimeError as err:
 
 from Likertpy import Scale
 import Likertpy.colors as builtin_colors
-from Likertpy import Interval 
+from Likertpy import Interval
 
 HIDE_EXCESSIVE_TICK_LABELS = True
 PADDING_LEFT = 0.02  # fraction of the total width to use as padding

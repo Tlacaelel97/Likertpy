@@ -7,6 +7,30 @@ import numpy as np
 
 
 class Interval:
+    """
+    A utility class for determining optimal intervals and divisors for plot scales.
+
+    The `Interval` class provides methods to compute suitable intervals for tick marks 
+    on a plot's axis, ensuring visual clarity and aesthetic balance. The class is 
+    designed to support tasks such as:
+    - Generating sequences of progressively increasing interval divisors.
+    - Identifying the largest divisor for a given number.
+    - Selecting the best interval from a list of candidates.
+    - Calculating the optimal interval for a given plot width and desired tick spacing.
+
+    This class is particularly useful in scenarios where scalable and flexible axis intervals 
+    are required, such as in dynamic plotting or charting applications.
+
+    Methods:
+        - `get_next_interval_divisor`: Generates a sequence of progressively increasing 
+          divisors for axis intervals, starting with predefined values and extending to powers of 10.
+        - `get_biggest_divisor`: Finds the largest divisor from the sequence of divisors 
+          that evenly divides a given number.
+        - `get_best_interval_in_list`: Selects the interval with the largest divisor from a list of candidates.
+        - `get_interval_for_scale`: Computes the optimal interval between tick marks 
+          for a plot, based on its width and the desired number of ticks.
+    """
+    
     def __init__(self):
         pass
 

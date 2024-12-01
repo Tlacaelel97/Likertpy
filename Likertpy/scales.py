@@ -6,6 +6,47 @@ import typing
 
 Scale = typing.List[str]
 
+msas_G1: Scale = [
+    "No me pasó",
+    "Casi nunca",
+    "Algunas veces",
+    "Frecuentemente",
+    "Casi todo el tiempo",
+]
+
+msas_G2: Scale = [
+    "No me pasó",
+    "Leve",
+    "Regular",
+    "Grave",
+    "Muy grave",
+]
+
+msas_G3: Scale = [
+    "No me pasó",
+    "Nada",
+    "Un poco",
+    "Regular",
+    "Bastante",
+    "Mucho",
+]
+
+msas_G4: Scale = [
+    "No lo tiene_1",
+    "Leve",
+    "Regular_1",
+    "Grave",
+    "Muy grave",
+    "No lo tiene_2",
+    "Nada",
+    "Un poco",
+    "Regular_2",
+    "Bastante",
+    "Mucho",
+]
+
+
+
 agree5_0: Scale = [
     "0",
     "Strongly disagree",
