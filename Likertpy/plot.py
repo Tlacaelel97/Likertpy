@@ -177,9 +177,9 @@ def plot_counts(
     axes.set_xticks(xvalues)
     axes.set_xticklabels(xlabels)
     if counts_are_percentages is True:
-        axes.set_xlabel("Percentage of Responses")
+        axes.set_xlabel("Porcentaje de Respuestas")
     else:
-        axes.set_xlabel("Number of Responses")
+        axes.set_xlabel("Número de Respuestas")
 
     # Reposition the legend if present
     if axes.get_legend():
@@ -233,6 +233,9 @@ def plot_counts(
                 number = float(label_text)
                 if number < bar_size_cutoff:
                     label.set_text("")
+
+    # Add name
+    axes.set_title("MSAS")
 
     return axes
 
