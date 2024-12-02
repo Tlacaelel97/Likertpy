@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 HERE = pathlib.Path(__file__).parent
 
-VERSION = '0.0.1' 
+VERSION = '0.1.1' 
 PACKAGE_NAME = 'Likertpy' 
 AUTHOR = 'Tlacaelel Jaime Flores Villaseñor' 
 AUTHOR_EMAIL = 'tlacaelel.developer@gmail.com' 
@@ -17,7 +17,9 @@ LONG_DESC_TYPE = "text/markdown"
 
 #Paquetes necesarios para que funcione la libreía. Se instalarán a la vez si no lo tuvieras ya instalado
 INSTALL_REQUIRES = [
-      'pandas'
+      'pandas',
+      'matplotlib',
+      'openpyxl',
       ]
 
 setup(
