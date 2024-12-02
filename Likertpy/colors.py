@@ -8,6 +8,15 @@ Colors = typing.List[str]
 
 TRANSPARENT = "#ffffff00"
 
+default_msas: Colors = [
+    TRANSPARENT,
+    "darkblue",
+    "cornflowerblue",
+    "gainsboro",
+    "lightcoral",
+    "firebrick",
+]
+
 default: Colors = [
     TRANSPARENT,
     "firebrick",

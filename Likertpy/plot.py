@@ -346,7 +346,7 @@ def plot_likert(
     plot_scale: Scale,
     plot_percentage: bool = False,
     format_scale: Scale = None,
-    colors: builtin_colors.Colors = builtin_colors.default,
+    colors: builtin_colors.Colors = builtin_colors.default_msas,
     label_max_width: int = 30,
     drop_zeros: bool = False,
     figsize=None,
