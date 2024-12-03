@@ -51,7 +51,6 @@ class PlotLikertError(ValueError):
 def plot_counts(
     counts: pd.DataFrame,
     scale: Scale,
-    plot_percentage: typing.Optional[bool] = None,
     colors: builtin_colors.Colors = builtin_colors.default,
     figsize=None,
     xtick_interval: typing.Optional[int] = None,
@@ -71,9 +70,6 @@ def plot_counts(
         Its columns represent the total counts in each category, while each row is a different question.
     scale : list of str
         The scale used for the plot: an ordered list of strings for each of the answer options.
-    plot_percentage : bool, optional
-        DEPRECATED: use `compute_percentages` instead.
-        If true, the counts are assumed to be percentages and % marks will be added to the x-axis labels.
     colors : list of str
         A list of colors in hex string or RGB tuples to use for plotting.
         Attention: if your colormap doesn't work right try appending transparent ("#ffffff00") in the first place.
@@ -99,19 +95,12 @@ def plot_counts(
     --------
     plot_likert : aggregate raw responses then plot them. Most often, you'll want to use that function instead of calling this one directly.
     """
-    if plot_percentage is not None:
-        warn(
-            "parameter `plot_percentage` for `plot_likert.likert_counts` is deprecated, set it to None and use `compute_percentages` instead",
-            FutureWarning,
-        )
-        counts_are_percentages = plot_percentage
+    # Re-compute counts as percentages, if requested
+    if compute_percentages:
+        counts = _compute_counts_percentage(counts)
+        counts_are_percentages = True
     else:
-        # Re-compute counts as percentages, if requested
-        if compute_percentages:
-            counts = _compute_counts_percentage(counts)
-            counts_are_percentages = True
-        else:
-            counts_are_percentages = False
+        counts_are_percentages = False
 
     # Pad each row/question from the left, so that they're centered around the middle (Neutral) response
     scale_middle = len(scale) // 2
@@ -347,13 +336,13 @@ def likert_response(df: pd.DataFrame, scale: Scale) -> pd.DataFrame:
 def plot_likert(
     df: typing.Union[pd.DataFrame, pd.Series],
     plot_scale: Scale,
-    plot_percentage: bool = False,
     format_scale: Scale = None,
     colors: builtin_colors.Colors = builtin_colors.default_msas,
     label_max_width: int = 30,
     drop_zeros: bool = False,
     figsize=None,
     xtick_interval: typing.Optional[int] = None,
+    compute_percentages: bool = False,
     bar_labels: bool = False,
     bar_labels_color: typing.Union[str, typing.List[str]] = "white",
     **kwargs,
@@ -367,8 +356,6 @@ def plot_likert(
         A dataframe with questions in column names and answers recorded as cell values.
     plot_scale : list
         The scale used for the actual plot: a list of strings in order for answer options.
-    plot_percentage : bool
-        Normalize the answer counts.
     format_scale : list of str
         Optional scale used to reformat the responses: \
         if your responses are numeric values, you can pass in this scale to replace them with text. \
@@ -385,6 +372,8 @@ def plot_likert(
         similarly to matplotlib
     xtick_interval : int
         Controls the interval between x-axis ticks.
+    compute_percentages : bool, default = True,
+        Convert the given response counts to percentages and display the counts as percentages in the plot.
     bar_labels : bool, default = False
         Show a label with the value of each bar segment on top of it
     bar_labels_color : str or list of str = "white",
@@ -414,7 +403,7 @@ def plot_likert(
         colors=colors,
         figsize=figsize,
         xtick_interval=xtick_interval,
-        compute_percentages=plot_percentage,
+        compute_percentages=compute_percentages,
         bar_labels=bar_labels,
         bar_labels_color=bar_labels_color,
         **kwargs,
