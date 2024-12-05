@@ -48,7 +48,84 @@ class PlotLikertError(ValueError):
     pass
 
 
-def plot_counts(
+def plot_likert(
+    df: typing.Union[pd.DataFrame, pd.Series],
+    plot_scale: Scale,
+    format_scale: Scale = None,
+    colors: builtin_colors.Colors = builtin_colors.default_msas,
+    label_max_width: int = 30,
+    drop_zeros: bool = False,
+    figsize=None,
+    xtick_interval: typing.Optional[int] = None,
+    compute_percentages: bool = False,
+    bar_labels: bool = False,
+    bar_labels_color: typing.Union[str, typing.List[str]] = "white",
+    **kwargs,
+) -> matplotlib.axes.Axes:
+    """
+    Plot the given Likert-type dataset.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame or pandas.Series
+        A dataframe with questions in column names and answers recorded as cell values.
+    plot_scale : list
+        The scale used for the actual plot: a list of strings in order for answer options.
+    format_scale : list of str
+        Optional scale used to reformat the responses: \
+        if your responses are numeric values, you can pass in this scale to replace them with text. \
+        If your dataset has NA values, this list must have a corresponding 0/empty value at the beginning.
+    colors : list of str
+        A list of colors in hex string or RGB tuples to use for plotting. Attention: if your \
+        colormap doesn't work right try appending transparent ("#ffffff00") in the first place.
+    label_max_width : int
+        The character wrap length of the y-axis labels.
+    drop_zeros : bool
+        Indicates whether the data have NA values that should be dropped (True) or not (False).
+    figsize : tuple of (int, int)
+        A tuple (width, heigth) that controls size of the final figure - \
+        similarly to matplotlib
+    xtick_interval : int
+        Controls the interval between x-axis ticks.
+    compute_percentages : bool, default = True,
+        Convert the given response counts to percentages and display the counts as percentages in the plot.
+    bar_labels : bool, default = False
+        Show a label with the value of each bar segment on top of it
+    bar_labels_color : str or list of str = "white",
+        If showing bar labels, use this color (or colors) for the text
+    **kwargs
+        Options to pass to pandas plotting method.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        Likert plot
+    """
+    if format_scale:
+        df_fixed = likert_response(df, format_scale)
+    else:
+        df_fixed = df
+        format_scale = plot_scale
+
+    counts = likert_counts(df_fixed, format_scale, label_max_width, drop_zeros)
+
+    if drop_zeros:
+        plot_scale = plot_scale[1:]
+
+    return _plot_counts(
+        counts=counts,
+        scale=plot_scale,
+        colors=colors,
+        figsize=figsize,
+        xtick_interval=xtick_interval,
+        compute_percentages=compute_percentages,
+        bar_labels=bar_labels,
+        bar_labels_color=bar_labels_color,
+        **kwargs,
+    )
+
+
+def _plot_counts(
     counts: pd.DataFrame,
     scale: Scale,
     colors: builtin_colors.Colors = builtin_colors.default,
@@ -331,83 +408,6 @@ def likert_response(df: pd.DataFrame, scale: Scale) -> pd.DataFrame:
         except AttributeError:  # for compatibility with Pandas < 2.1.0
             df = df.map(lambda x: scale[i] if str(i) in x else x)
     return df
-
-
-def plot_likert(
-    df: typing.Union[pd.DataFrame, pd.Series],
-    plot_scale: Scale,
-    format_scale: Scale = None,
-    colors: builtin_colors.Colors = builtin_colors.default_msas,
-    label_max_width: int = 30,
-    drop_zeros: bool = False,
-    figsize=None,
-    xtick_interval: typing.Optional[int] = None,
-    compute_percentages: bool = False,
-    bar_labels: bool = False,
-    bar_labels_color: typing.Union[str, typing.List[str]] = "white",
-    **kwargs,
-) -> matplotlib.axes.Axes:
-    """
-    Plot the given Likert-type dataset.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame or pandas.Series
-        A dataframe with questions in column names and answers recorded as cell values.
-    plot_scale : list
-        The scale used for the actual plot: a list of strings in order for answer options.
-    format_scale : list of str
-        Optional scale used to reformat the responses: \
-        if your responses are numeric values, you can pass in this scale to replace them with text. \
-        If your dataset has NA values, this list must have a corresponding 0/empty value at the beginning.
-    colors : list of str
-        A list of colors in hex string or RGB tuples to use for plotting. Attention: if your \
-        colormap doesn't work right try appending transparent ("#ffffff00") in the first place.
-    label_max_width : int
-        The character wrap length of the y-axis labels.
-    drop_zeros : bool
-        Indicates whether the data have NA values that should be dropped (True) or not (False).
-    figsize : tuple of (int, int)
-        A tuple (width, heigth) that controls size of the final figure - \
-        similarly to matplotlib
-    xtick_interval : int
-        Controls the interval between x-axis ticks.
-    compute_percentages : bool, default = True,
-        Convert the given response counts to percentages and display the counts as percentages in the plot.
-    bar_labels : bool, default = False
-        Show a label with the value of each bar segment on top of it
-    bar_labels_color : str or list of str = "white",
-        If showing bar labels, use this color (or colors) for the text
-    **kwargs
-        Options to pass to pandas plotting method.
-
-    Returns
-    -------
-    matplotlib.axes.Axes
-        Likert plot
-    """
-    if format_scale:
-        df_fixed = likert_response(df, format_scale)
-    else:
-        df_fixed = df
-        format_scale = plot_scale
-
-    counts = likert_counts(df_fixed, format_scale, label_max_width, drop_zeros)
-
-    if drop_zeros:
-        plot_scale = plot_scale[1:]
-
-    return plot_counts(
-        counts=counts,
-        scale=plot_scale,
-        colors=colors,
-        figsize=figsize,
-        xtick_interval=xtick_interval,
-        compute_percentages=compute_percentages,
-        bar_labels=bar_labels,
-        bar_labels_color=bar_labels_color,
-        **kwargs,
-    )
 
 
 def raw_scale(df: pd.DataFrame) -> pd.DataFrame:
