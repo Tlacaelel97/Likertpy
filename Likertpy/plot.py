@@ -178,33 +178,11 @@ def _plot_counts(
         counts_are_percentages = True
     else:
         counts_are_percentages = False
-
-    # Pad each row/question from the left, so that they're centered around the middle (Neutral) response
-    scale_middle = len(scale) // 2
-
-    if scale_middle == len(scale) / 2:
-        middles = counts.iloc[:, 0:scale_middle].sum(axis=1)
-    else:
-        middles = (
-            counts.iloc[:, 0:scale_middle].sum(axis=1)
-            + counts.iloc[:, scale_middle] / 2
-        )
-
-    center = middles.max()
-
-    padding_values = (middles - center).abs()
-    padded_counts = pd.concat([padding_values, counts], axis=1)
-    # Hide the padding row from the legend
-    padded_counts = padded_counts.rename({0: ""}, axis=1)
-
-    # Reverse rows to keep the questions in order
-    # (Otherwise, the plot function shows the last one at the top.)
-    reversed_rows = padded_counts.iloc[::-1]
+    # configure the rows to plot likert
+    final_rows, center, padded_counts = _configure_rows(scale, counts)
 
     # Start putting together the plot
-    axes = reversed_rows.plot.barh(
-        stacked=True, color=colors, figsize=figsize, **kwargs
-    )
+    axes = final_rows.plot.barh(stacked=True, color=colors, figsize=figsize, **kwargs)
 
     # Draw center line
     center_line = axes.axvline(center, linestyle="--", color="black", alpha=0.5)
@@ -304,6 +282,56 @@ def _plot_counts(
     axes.set_title("MSAS")
 
     return axes
+
+
+def _configure_rows(
+    scale, counts: pd.DataFrame
+) -> tuple[pd.DataFrame, float, pd.DataFrame]:
+    """
+    Centers rows of a DataFrame around the Neutral response for Likert-style data.
+
+    Pads each row based on the cumulative counts to the left of the Neutral response,
+    ensuring alignment for balanced visualizations. The rows are reversed to maintain
+    the original order of questions in the plot.
+
+    Args:
+        scale (list): Likert scale values (e.g., [1, 2, 3, 4, 5]).
+        counts (pd.DataFrame): Response counts for each category (rows are questions,
+            columns are scale values).
+
+    Returns:
+        tuple:
+            - pd.DataFrame: The adjusted DataFrame with padded and reversed rows.
+            - float: The maximum center value used for padding.
+            - pd.DataFrame: The full padded DataFrame with the added padding column.
+
+    Notes:
+        - For even-length scales, the Neutral category is split evenly.
+        - Padding column is excluded from legends by renaming.
+    """
+
+    # Pad each row/question from the left, so that they're centered around the middle (Neutral) response
+    scale_middle = len(scale) // 2
+
+    if scale_middle == len(scale) / 2:
+        middles = counts.iloc[:, 0:scale_middle].sum(axis=1)
+    else:
+        middles = (
+            counts.iloc[:, 0:scale_middle].sum(axis=1)
+            + counts.iloc[:, scale_middle] / 2
+        )
+
+    center = middles.max()
+
+    padding_values = (middles - center).abs()
+    padded_counts = pd.concat([padding_values, counts], axis=1)
+    # Hide the padding row from the legend
+    padded_counts = padded_counts.rename({0: ""}, axis=1)
+
+    # Reverse rows to keep the questions in order
+    # (Otherwise, the plot function shows the last one at the top.)
+    rows = padded_counts.iloc[::-1]
+    return rows, center, padded_counts
 
 
 def likert_counts(
