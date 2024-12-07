@@ -188,42 +188,20 @@ def _plot_counts(
     center_line = axes.axvline(center, linestyle="--", color="black", alpha=0.5)
     center_line.set_zorder(-1)
 
-    # Compute and show x labels
-    max_width = int(round(padded_counts.sum(axis=1).max()))
-    if xtick_interval is None:
-        num_ticks = axes.xaxis.get_tick_space()
-        interval_helper = Interval()
-        interval = interval_helper.get_interval_for_scale(num_ticks, max_width)
-    else:
-        interval = xtick_interval
+    # Set x values and x labels for the plot ticks
+    xvalues, xlabels = _set_x_labels(
+        padded_counts, xtick_interval, axes, center, counts
+    )
 
-    right_edge = max_width - center
-    right_labels = np.arange(interval, right_edge + interval, interval)
-    right_values = center + right_labels
-    left_labels = np.arange(0, center + 1, interval)
-    left_values = center - left_labels
-    xlabels = np.concatenate([left_labels, right_labels])
-    xvalues = np.concatenate([left_values, right_values])
-
-    xlabels = [int(l) for l in xlabels if round(l) == l]
-
-    # Ensure tick labels don't exceed number of participants
-    # (or, in the case of percentages, 100%) since that looks confusing
-    if HIDE_EXCESSIVE_TICK_LABELS:
-        # Labels for tick values that are too high are hidden,
-        # but the tick mark itself remains displayed.
-        total_max = counts.sum(axis="columns").max()
-        xlabels = ["" if label > total_max else label for label in xlabels]
-
+    # Set xlabel
     if counts_are_percentages:
         xlabels = [str(label) + "%" if label != "" else "" for label in xlabels]
-
-    axes.set_xticks(xvalues)
-    axes.set_xticklabels(xlabels)
-    if counts_are_percentages is True:
         axes.set_xlabel("Porcentaje de Respuestas")
     else:
         axes.set_xlabel("Número de Respuestas")
+
+    axes.set_xticks(xvalues)
+    axes.set_xticklabels(xlabels)
 
     # Reposition the legend if present
     if axes.get_legend():
@@ -332,6 +310,69 @@ def _configure_rows(
     # (Otherwise, the plot function shows the last one at the top.)
     rows = padded_counts.iloc[::-1]
     return rows, center, padded_counts
+
+
+def _set_x_labels(
+    padded_counts: pd.DataFrame,
+    xtick_interval: int,
+    axes: matplotlib.axes.Axes,
+    center: float,
+    counts: pd.DataFrame,
+):
+    """
+    Computes and sets the x-axis labels and their positions for a Likert-style plot.
+
+    The function calculates appropriate x-axis tick positions and labels, ensuring
+    balance around the center (Neutral response) and avoiding excessive labels
+    beyond the total count or percentage.
+
+    Args:
+        padded_counts (pd.DataFrame): DataFrame with padded and centered counts.
+        xtick_interval (int): Desired interval between x-ticks. If `None`,
+            it is calculated dynamically based on axis width and tick space.
+        axes (matplotlib.axes.Axes): The matplotlib axes object for the plot.
+        center (float): The value used as the central reference point for padding.
+        counts (pd.DataFrame): Original response counts for validation and scaling.
+
+    Returns:
+        tuple:
+            - xvalues (np.ndarray): Array of x-tick positions.
+            - xlabels (list): List of corresponding x-axis labels.
+
+    Notes:
+        - Dynamically adjusts tick interval using the `Interval` class if not provided.
+        - Ensures tick labels do not exceed the maximum count or 100% when `HIDE_EXCESSIVE_TICK_LABELS` is enabled.
+        - Includes both left (negative direction) and right (positive direction) labels centered around `center`.
+    """
+
+    # Compute and show x labels
+    max_width = int(round(padded_counts.sum(axis=1).max()))
+    if xtick_interval is None:
+        num_ticks = axes.xaxis.get_tick_space()
+        interval_helper = Interval()
+        interval = interval_helper.get_interval_for_scale(num_ticks, max_width)
+    else:
+        interval = xtick_interval
+
+    right_edge = max_width - center
+    right_labels = np.arange(interval, right_edge + interval, interval)
+    right_values = center + right_labels
+    left_labels = np.arange(0, center + 1, interval)
+    left_values = center - left_labels
+    xlabels = np.concatenate([left_labels, right_labels])
+    xvalues = np.concatenate([left_values, right_values])
+
+    xlabels = [int(l) for l in xlabels if round(l) == l]
+
+    # Ensure tick labels don't exceed number of participants
+    # (or, in the case of percentages, 100%) since that looks confusing
+    if HIDE_EXCESSIVE_TICK_LABELS:
+        # Labels for tick values that are too high are hidden,
+        # but the tick mark itself remains displayed.
+        total_max = counts.sum(axis="columns").max()
+        xlabels = ["" if label > total_max else label for label in xlabels]
+
+    return xvalues, xlabels
 
 
 def likert_counts(
