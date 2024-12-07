@@ -48,12 +48,12 @@ class FileRead:
 
         # Usar la función correspondiente
         try:
-            return self.readers[self.file_extension](self.crear_path())
+            return self.readers[self.file_extension](self._crear_path())
         except Exception as e:
             raise RuntimeError(f"Error al leer el archivo '{self.file_path}': {e}")
 
 
-    def crear_path(self) -> Path:
+    def _crear_path(self) -> Path:
         try:
             return Path(self.folder, self.file)
         except Exception as err:

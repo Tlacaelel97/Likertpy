@@ -252,7 +252,10 @@ def _plot_counts(
                 label_text = label.get_text()
                 if compute_percentages:
                     label_text = label_text.rstrip("%")
-                number = float(label_text)
+                try:
+                    number = float(label_text)
+                except ValueError:
+                    continue
                 if number < bar_size_cutoff:
                     label.set_text("")
 
@@ -371,6 +374,9 @@ def _set_x_labels(
         # but the tick mark itself remains displayed.
         total_max = counts.sum(axis="columns").max()
         xlabels = ["" if label > total_max else label for label in xlabels]
+
+    # Add a check to avoid duplicate labels
+    xlabels = list(dict.fromkeys(xlabels))
 
     return xvalues, xlabels
 
