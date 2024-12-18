@@ -218,46 +218,7 @@ def _plot_counts(
 
     # Add labels
     if bar_labels:
-        bar_label_format = BAR_LABEL_FORMAT + ("%%" if compute_percentages else "")
-        bar_size_cutoff = counts_sum * BAR_LABEL_SIZE_CUTOFF
-
-        if isinstance(bar_labels_color, list):
-            if len(bar_labels_color) != len(scale):
-                raise PlotLikertError(
-                    "list of bar label colors must have as many values as the scale"
-                )
-            bar_label_colors = bar_labels_color
-        else:
-            bar_label_colors = [bar_labels_color] * len(scale)
-
-        for i, segment in enumerate(
-            axes.containers[1:]  # the first container is the padding
-        ):
-            try:
-                labels = axes.bar_label(
-                    segment,
-                    label_type="center",
-                    fmt=bar_label_format,
-                    padding=0,
-                    color=bar_label_colors[i],
-                    weight="bold",
-                )
-            except AttributeError:
-                raise PlotLikertError(
-                    "Rendering bar labels requires matplotlib version 3.4.0 or higher"
-                )
-
-            # Remove labels that don't fit because the bars are too small
-            for label in labels:
-                label_text = label.get_text()
-                if compute_percentages:
-                    label_text = label_text.rstrip("%")
-                try:
-                    number = float(label_text)
-                except ValueError:
-                    continue
-                if number < bar_size_cutoff:
-                    label.set_text("")
+        _set_bar_labels(axes, compute_percentages, counts_sum, bar_labels_color, scale)
 
     # Add name
     axes.set_title("MSAS")
@@ -375,10 +336,80 @@ def _set_x_labels(
         total_max = counts.sum(axis="columns").max()
         xlabels = ["" if label > total_max else label for label in xlabels]
 
-    # Add a check to avoid duplicate labels
-    xlabels = list(dict.fromkeys(xlabels))
-
     return xvalues, xlabels
+
+
+def _set_bar_labels(
+    axes: matplotlib.axes.Axes,
+    compute_percentages: bool,
+    counts_sum: pd.DataFrame,
+    bar_labels_color,
+    scale: list,
+):
+    """
+    Configures and applies labels to the bars in a Likert-style plot.
+
+    This function handles the placement, formatting, and visibility of bar labels, ensuring
+    readability based on the bar size. It also verifies the compatibility of color settings
+    with the given scale.
+
+    Args:
+        axes (matplotlib.axes.Axes): The matplotlib axes object containing the bar containers.
+        compute_percentages (bool): Whether bar labels should display percentages or raw values.
+        counts_sum (float): Total count of responses, used to determine the cutoff for small labels.
+        bar_labels_color (str or list): Single color for all labels or a list of colors corresponding
+            to each scale segment.
+        scale (list): The Likert scale values, used to validate color assignments.
+
+    Raises:
+        PlotLikertError: If the number of colors in `bar_labels_color` does not match the scale length,
+        or if matplotlib version is insufficient to render bar labels.
+
+    Notes:
+        - Labels below a size threshold (relative to `counts_sum` and `BAR_LABEL_SIZE_CUTOFF`) are hidden.
+        - Requires matplotlib version 3.4.0 or higher for `bar_label` functionality.
+    """
+
+    bar_label_format = BAR_LABEL_FORMAT + ("%%" if compute_percentages else "")
+    bar_size_cutoff = counts_sum * BAR_LABEL_SIZE_CUTOFF
+
+    if isinstance(bar_labels_color, list):
+        if len(bar_labels_color) != len(scale):
+            raise PlotLikertError(
+                "list of bar label colors must have as many values as the scale"
+            )
+        bar_label_colors = bar_labels_color
+    else:
+        bar_label_colors = [bar_labels_color] * len(scale)
+
+    for i, segment in enumerate(
+        axes.containers[1:]  # the first container is the padding
+    ):
+        try:
+            labels = axes.bar_label(
+                segment,
+                label_type="center",
+                fmt=bar_label_format,
+                padding=0,
+                color=bar_label_colors[i],
+                weight="bold",
+            )
+        except AttributeError:
+            raise PlotLikertError(
+                "Rendering bar labels requires matplotlib version 3.4.0 or higher"
+            )
+
+        # Remove labels that don't fit because the bars are too small
+        for label in labels:
+            label_text = label.get_text()
+            if compute_percentages:
+                label_text = label_text.rstrip("%")
+            try:
+                number = float(label_text)
+            except ValueError:
+                continue
+            if number < bar_size_cutoff:
+                label.set_text("")
 
 
 def likert_counts(
