@@ -48,154 +48,155 @@ class PlotLikertError(ValueError):
     pass
 
 
-def plot_counts(
-    counts: pd.DataFrame,
-    scale: Scale,
-    plot_percentage: typing.Optional[bool] = None,
-    colors: builtin_colors.Colors = builtin_colors.default,
-    figsize=None,
-    xtick_interval: typing.Optional[int] = None,
-    compute_percentages: bool = False,
-    bar_labels: bool = False,
-    bar_labels_color: typing.Union[str, typing.List[str]] = "white",
-    **kwargs,
-) -> matplotlib.axes.Axes:
-    """
-    Plot the given counts of Likert responses.
+class ConfigurePlot:
 
+    def __init__(self):
+        pass
 
-    Parameters
-    ----------
-    counts : pd.DataFrame
-        The given DataFrame should contain the pre-computed counts of responses to a set of Likert-style questions.
-        Its columns represent the total counts in each category, while each row is a different question.
-    scale : list of str
-        The scale used for the plot: an ordered list of strings for each of the answer options.
-    plot_percentage : bool, optional
-        DEPRECATED: use `compute_percentages` instead.
-        If true, the counts are assumed to be percentages and % marks will be added to the x-axis labels.
-    colors : list of str
-        A list of colors in hex string or RGB tuples to use for plotting.
-        Attention: if your colormap doesn't work right try appending transparent ("#ffffff00") in the first place.
-    figsize : tuple of (int, int)
-        A tuple (width, heigth) that controls size of the final figure - similarly to matplotlib
-    xtick_interval : int, optional
-        Controls the interval between x-axis ticks.
-    compute_percentages : bool, default = True,
-        Convert the given response counts to percentages and display the counts as percentages in the plot.
-    bar_labels : bool, default = False
-        Show a label with the value of each bar segment on top of it
-    bar_labels_color : str or list of str = "white",
-        If showing bar labels, use this color (or colors) for the text
-    **kwargs
-        Options to pass to pandas plotting method.
+    def _configure_rows(
+        self, scale, counts: pd.DataFrame
+    ) -> tuple[pd.DataFrame, float, pd.DataFrame]:
+        """
+        Centers rows of a DataFrame around the Neutral response for Likert-style data.
 
-    Returns
-    -------
-    matplotlib.axes.Axes
-        The axes of the generated Likert plot
+        Pads each row based on the cumulative counts to the left of the Neutral response,
+        ensuring alignment for balanced visualizations. The rows are reversed to maintain
+        the original order of questions in the plot.
 
-    See Also
-    --------
-    plot_likert : aggregate raw responses then plot them. Most often, you'll want to use that function instead of calling this one directly.
-    """
-    if plot_percentage is not None:
-        warn(
-            "parameter `plot_percentage` for `plot_likert.likert_counts` is deprecated, set it to None and use `compute_percentages` instead",
-            FutureWarning,
-        )
-        counts_are_percentages = plot_percentage
-    else:
-        # Re-compute counts as percentages, if requested
-        if compute_percentages:
-            counts = _compute_counts_percentage(counts)
-            counts_are_percentages = True
+        Args:
+            scale (list): Likert scale values (e.g., [1, 2, 3, 4, 5]).
+            counts (pd.DataFrame): Response counts for each category (rows are questions,
+                columns are scale values).
+
+        Returns:
+            tuple:
+                - pd.DataFrame: The adjusted DataFrame with padded and reversed rows.
+                - float: The maximum center value used for padding.
+                - pd.DataFrame: The full padded DataFrame with the added padding column.
+
+        Notes:
+            - For even-length scales, the Neutral category is split evenly.
+            - Padding column is excluded from legends by renaming.
+        """
+
+        # Pad each row/question from the left, so that they're centered around the middle (Neutral) response
+        scale_middle = len(scale) // 2
+
+        if scale_middle == len(scale) / 2:
+            middles = counts.iloc[:, 0:scale_middle].sum(axis=1)
         else:
-            counts_are_percentages = False
+            middles = (
+                counts.iloc[:, 0:scale_middle].sum(axis=1)
+                + counts.iloc[:, scale_middle] / 2
+            )
 
-    # Pad each row/question from the left, so that they're centered around the middle (Neutral) response
-    scale_middle = len(scale) // 2
+        center = middles.max()
 
-    if scale_middle == len(scale) / 2:
-        middles = counts.iloc[:, 0:scale_middle].sum(axis=1)
-    else:
-        middles = (
-            counts.iloc[:, 0:scale_middle].sum(axis=1)
-            + counts.iloc[:, scale_middle] / 2
-        )
+        padding_values = (middles - center).abs()
+        padded_counts = pd.concat([padding_values, counts], axis=1)
+        # Hide the padding row from the legend
+        padded_counts = padded_counts.rename({0: ""}, axis=1)
 
-    center = middles.max()
+        # Reverse rows to keep the questions in order
+        # (Otherwise, the plot function shows the last one at the top.)
+        rows = padded_counts.iloc[::-1]
+        return rows, center, padded_counts
 
-    padding_values = (middles - center).abs()
-    padded_counts = pd.concat([padding_values, counts], axis=1)
-    # Hide the padding row from the legend
-    padded_counts = padded_counts.rename({0: ""}, axis=1)
+    def _set_x_labels(
+        self,
+        padded_counts: pd.DataFrame,
+        xtick_interval: int,
+        axes: matplotlib.axes.Axes,
+        center: float,
+        counts: pd.DataFrame,
+    ):
+        """
+        Computes and sets the x-axis labels and their positions for a Likert-style plot.
 
-    # Reverse rows to keep the questions in order
-    # (Otherwise, the plot function shows the last one at the top.)
-    reversed_rows = padded_counts.iloc[::-1]
+        The function calculates appropriate x-axis tick positions and labels, ensuring
+        balance around the center (Neutral response) and avoiding excessive labels
+        beyond the total count or percentage.
 
-    # Start putting together the plot
-    axes = reversed_rows.plot.barh(
-        stacked=True, color=colors, figsize=figsize, **kwargs
-    )
+        Args:
+            padded_counts (pd.DataFrame): DataFrame with padded and centered counts.
+            xtick_interval (int): Desired interval between x-ticks. If `None`,
+                it is calculated dynamically based on axis width and tick space.
+            axes (matplotlib.axes.Axes): The matplotlib axes object for the plot.
+            center (float): The value used as the central reference point for padding.
+            counts (pd.DataFrame): Original response counts for validation and scaling.
 
-    # Draw center line
-    center_line = axes.axvline(center, linestyle="--", color="black", alpha=0.5)
-    center_line.set_zorder(-1)
+        Returns:
+            tuple:
+                - xvalues (np.ndarray): Array of x-tick positions.
+                - xlabels (list): List of corresponding x-axis labels.
 
-    # Compute and show x labels
-    max_width = int(round(padded_counts.sum(axis=1).max()))
-    if xtick_interval is None:
-        num_ticks = axes.xaxis.get_tick_space()
-        interval_helper = Interval()
-        interval = interval_helper.get_interval_for_scale(num_ticks, max_width)
-    else:
-        interval = xtick_interval
+        Notes:
+            - Dynamically adjusts tick interval using the `Interval` class if not provided.
+            - Ensures tick labels do not exceed the maximum count or 100% when `HIDE_EXCESSIVE_TICK_LABELS` is enabled.
+            - Includes both left (negative direction) and right (positive direction) labels centered around `center`.
+        """
 
-    right_edge = max_width - center
-    right_labels = np.arange(interval, right_edge + interval, interval)
-    right_values = center + right_labels
-    left_labels = np.arange(0, center + 1, interval)
-    left_values = center - left_labels
-    xlabels = np.concatenate([left_labels, right_labels])
-    xvalues = np.concatenate([left_values, right_values])
+        # Compute and show x labels
+        max_width = int(round(padded_counts.sum(axis=1).max()))
+        if xtick_interval is None:
+            num_ticks = axes.xaxis.get_tick_space()
+            interval_helper = Interval()
+            interval = interval_helper.get_interval_for_scale(num_ticks, max_width)
+        else:
+            interval = xtick_interval
 
-    xlabels = [int(l) for l in xlabels if round(l) == l]
+        right_edge = max_width - center
+        right_labels = np.arange(interval, right_edge + interval, interval)
+        right_values = center + right_labels
+        left_labels = np.arange(0, center + 1, interval)
+        left_values = center - left_labels
+        xlabels = np.concatenate([left_labels, right_labels])
+        xvalues = np.concatenate([left_values, right_values])
 
-    # Ensure tick labels don't exceed number of participants
-    # (or, in the case of percentages, 100%) since that looks confusing
-    if HIDE_EXCESSIVE_TICK_LABELS:
-        # Labels for tick values that are too high are hidden,
-        # but the tick mark itself remains displayed.
-        total_max = counts.sum(axis="columns").max()
-        xlabels = ["" if label > total_max else label for label in xlabels]
+        xlabels = [int(l) for l in xlabels if round(l) == l]
 
-    if counts_are_percentages:
-        xlabels = [str(label) + "%" if label != "" else "" for label in xlabels]
+        # Ensure tick labels don't exceed number of participants
+        # (or, in the case of percentages, 100%) since that looks confusing
+        if HIDE_EXCESSIVE_TICK_LABELS:
+            # Labels for tick values that are too high are hidden,
+            # but the tick mark itself remains displayed.
+            total_max = counts.sum(axis="columns").max()
+            xlabels = ["" if label > total_max else label for label in xlabels]
 
-    axes.set_xticks(xvalues)
-    axes.set_xticklabels(xlabels)
-    if counts_are_percentages is True:
-        axes.set_xlabel("Porcentaje de Respuestas")
-    else:
-        axes.set_xlabel("Número de Respuestas")
+        return xvalues, xlabels
 
-    # Reposition the legend if present
-    if axes.get_legend():
-        axes.legend(bbox_to_anchor=(1.05, 1))
+    def _set_bar_labels(
+        self,
+        axes: matplotlib.axes.Axes,
+        compute_percentages: bool,
+        counts_sum: pd.DataFrame,
+        bar_labels_color,
+        scale: list,
+    ):
+        """
+        Configures and applies labels to the bars in a Likert-style plot.
 
-    # Adjust padding
-    counts_sum = counts.sum(axis="columns").max()
-    # Pad the bars on the left (so there's a gap between the axis and the first section)
-    padding_left = counts_sum * PADDING_LEFT
-    # Tighten the padding on the right of the figure
-    padding_right = counts_sum * PADDING_RIGHT
-    x_min, x_max = axes.get_xlim()
-    axes.set_xlim(x_min - padding_left, x_max - padding_right)
+        This function handles the placement, formatting, and visibility of bar labels, ensuring
+        readability based on the bar size. It also verifies the compatibility of color settings
+        with the given scale.
 
-    # Add labels
-    if bar_labels:
+        Args:
+            axes (matplotlib.axes.Axes): The matplotlib axes object containing the bar containers.
+            compute_percentages (bool): Whether bar labels should display percentages or raw values.
+            counts_sum (float): Total count of responses, used to determine the cutoff for small labels.
+            bar_labels_color (str or list): Single color for all labels or a list of colors corresponding
+                to each scale segment.
+            scale (list): The Likert scale values, used to validate color assignments.
+
+        Raises:
+            PlotLikertError: If the number of colors in `bar_labels_color` does not match the scale length,
+            or if matplotlib version is insufficient to render bar labels.
+
+        Notes:
+            - Labels below a size threshold (relative to `counts_sum` and `BAR_LABEL_SIZE_CUTOFF`) are hidden.
+            - Requires matplotlib version 3.4.0 or higher for `bar_label` functionality.
+        """
+
         bar_label_format = BAR_LABEL_FORMAT + ("%%" if compute_percentages else "")
         bar_size_cutoff = counts_sum * BAR_LABEL_SIZE_CUTOFF
 
@@ -230,13 +231,133 @@ def plot_counts(
                 label_text = label.get_text()
                 if compute_percentages:
                     label_text = label_text.rstrip("%")
-                number = float(label_text)
+                try:
+                    number = float(label_text)
+                except ValueError:
+                    continue
                 if number < bar_size_cutoff:
                     label.set_text("")
 
+
+def plot_likert(
+    df: typing.Union[pd.DataFrame, pd.Series],
+    plot_scale: Scale,
+    format_scale: Scale = None,
+    colors: builtin_colors.Colors = builtin_colors.default_msas,
+    label_max_width: int = 30,
+    drop_zeros: bool = False,
+    figsize=None,
+    xtick_interval: typing.Optional[int] = None,
+    compute_percentages: bool = False,
+    bar_labels: bool = False,
+    bar_labels_color: typing.Union[str, typing.List[str]] = "white",
+    **kwargs,
+) -> matplotlib.axes.Axes:
+    """
+    Plot the given Likert-type dataset.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame or pandas.Series
+        A dataframe with questions in column names and answers recorded as cell values.
+    plot_scale : list
+        The scale used for the actual plot: a list of strings in order for answer options.
+    format_scale : list of str
+        Optional scale used to reformat the responses: \
+        if your responses are numeric values, you can pass in this scale to replace them with text. \
+        If your dataset has NA values, this list must have a corresponding 0/empty value at the beginning.
+    colors : list of str
+        A list of colors in hex string or RGB tuples to use for plotting. Attention: if your \
+        colormap doesn't work right try appending transparent ("#ffffff00") in the first place.
+    label_max_width : int
+        The character wrap length of the y-axis labels.
+    drop_zeros : bool
+        Indicates whether the data have NA values that should be dropped (True) or not (False).
+    figsize : tuple of (int, int)
+        A tuple (width, heigth) that controls size of the final figure - \
+        similarly to matplotlib
+    xtick_interval : int
+        Controls the interval between x-axis ticks.
+    compute_percentages : bool, default = True,
+        Convert the given response counts to percentages and display the counts as percentages in the plot.
+    bar_labels : bool, default = False
+        Show a label with the value of each bar segment on top of it
+    bar_labels_color : str or list of str = "white",
+        If showing bar labels, use this color (or colors) for the text
+    **kwargs
+        Options to pass to pandas plotting method.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        Likert plot
+    """
+    conf_plot = ConfigurePlot()
+
+    if format_scale:
+        df_fixed = likert_response(df, format_scale)
+    else:
+        df_fixed = df
+        format_scale = plot_scale
+
+    counts = likert_counts(df_fixed, format_scale, label_max_width, drop_zeros)
+
+    if drop_zeros:
+        plot_scale = plot_scale[1:]
+
+    # Re-compute counts as percentages, if requested
+    if compute_percentages:
+        counts = _compute_counts_percentage(counts)
+        counts_are_percentages = True
+    else:
+        counts_are_percentages = False
+    # configure the rows to plot likert
+    final_rows, center, padded_counts = conf_plot._configure_rows(plot_scale, counts)
+
+    # Start putting together the plot
+    axes = final_rows.plot.barh(stacked=True, color=colors, figsize=figsize, **kwargs)
+
+    # Draw center line
+    center_line = axes.axvline(center, linestyle="--", color="black", alpha=0.5)
+    center_line.set_zorder(-1)
+
+    # Set x values and x labels for the plot ticks
+    xvalues, xlabels = conf_plot._set_x_labels(
+        padded_counts, xtick_interval, axes, center, counts
+    )
+
+    # Set xlabel
+    if counts_are_percentages:
+        xlabels = [str(label) + "%" if label != "" else "" for label in xlabels]
+        axes.set_xlabel("Porcentaje de Respuestas")
+    else:
+        axes.set_xlabel("Número de Respuestas")
+
+    axes.set_xticks(xvalues)
+    axes.set_xticklabels(xlabels)
+
+    # Reposition the legend if present
+    if axes.get_legend():
+        axes.legend(bbox_to_anchor=(1.05, 1))
+
+    # Adjust padding
+    counts_sum = counts.sum(axis="columns").max()
+    # Pad the bars on the left (so there's a gap between the axis and the first section)
+    padding_left = counts_sum * PADDING_LEFT
+    # Tighten the padding on the right of the figure
+    padding_right = counts_sum * PADDING_RIGHT
+    x_min, x_max = axes.get_xlim()
+    axes.set_xlim(x_min - padding_left, x_max - padding_right)
+
+    # Add labels
+    if bar_labels:
+        conf_plot._set_bar_labels(
+            axes, compute_percentages, counts_sum, bar_labels_color, plot_scale
+        )
+
     # Add name
     axes.set_title("MSAS")
-
+    plt.show()
     return axes
 
 
@@ -342,83 +463,6 @@ def likert_response(df: pd.DataFrame, scale: Scale) -> pd.DataFrame:
         except AttributeError:  # for compatibility with Pandas < 2.1.0
             df = df.map(lambda x: scale[i] if str(i) in x else x)
     return df
-
-
-def plot_likert(
-    df: typing.Union[pd.DataFrame, pd.Series],
-    plot_scale: Scale,
-    plot_percentage: bool = False,
-    format_scale: Scale = None,
-    colors: builtin_colors.Colors = builtin_colors.default_msas,
-    label_max_width: int = 30,
-    drop_zeros: bool = False,
-    figsize=None,
-    xtick_interval: typing.Optional[int] = None,
-    bar_labels: bool = False,
-    bar_labels_color: typing.Union[str, typing.List[str]] = "white",
-    **kwargs,
-) -> matplotlib.axes.Axes:
-    """
-    Plot the given Likert-type dataset.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame or pandas.Series
-        A dataframe with questions in column names and answers recorded as cell values.
-    plot_scale : list
-        The scale used for the actual plot: a list of strings in order for answer options.
-    plot_percentage : bool
-        Normalize the answer counts.
-    format_scale : list of str
-        Optional scale used to reformat the responses: \
-        if your responses are numeric values, you can pass in this scale to replace them with text. \
-        If your dataset has NA values, this list must have a corresponding 0/empty value at the beginning.
-    colors : list of str
-        A list of colors in hex string or RGB tuples to use for plotting. Attention: if your \
-        colormap doesn't work right try appending transparent ("#ffffff00") in the first place.
-    label_max_width : int
-        The character wrap length of the y-axis labels.
-    drop_zeros : bool
-        Indicates whether the data have NA values that should be dropped (True) or not (False).
-    figsize : tuple of (int, int)
-        A tuple (width, heigth) that controls size of the final figure - \
-        similarly to matplotlib
-    xtick_interval : int
-        Controls the interval between x-axis ticks.
-    bar_labels : bool, default = False
-        Show a label with the value of each bar segment on top of it
-    bar_labels_color : str or list of str = "white",
-        If showing bar labels, use this color (or colors) for the text
-    **kwargs
-        Options to pass to pandas plotting method.
-
-    Returns
-    -------
-    matplotlib.axes.Axes
-        Likert plot
-    """
-    if format_scale:
-        df_fixed = likert_response(df, format_scale)
-    else:
-        df_fixed = df
-        format_scale = plot_scale
-
-    counts = likert_counts(df_fixed, format_scale, label_max_width, drop_zeros)
-
-    if drop_zeros:
-        plot_scale = plot_scale[1:]
-
-    return plot_counts(
-        counts=counts,
-        scale=plot_scale,
-        colors=colors,
-        figsize=figsize,
-        xtick_interval=xtick_interval,
-        compute_percentages=plot_percentage,
-        bar_labels=bar_labels,
-        bar_labels_color=bar_labels_color,
-        **kwargs,
-    )
 
 
 def raw_scale(df: pd.DataFrame) -> pd.DataFrame:
