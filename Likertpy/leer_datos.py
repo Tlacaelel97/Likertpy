@@ -78,7 +78,17 @@ class CleanData:
         # Select group of interest
         # In this case G1 but should be change to make it interactive
         data_MSAS_G1 = self.data.iloc[:,np.r_[0:24]]
+
+        # Drop Na Values
+        data_MSAS_G1 = data_MSAS_G1.dropna()
+
+        # Select survey's number (0,1,2)
+        data_MSAS_G1 = data_MSAS_G1.loc[data_MSAS_G1["('', 'numencuesta')"]==0]
+        data_MSAS_G1 = data_MSAS_G1.drop("('', 'numencuesta')", axis=1)
+        data_MSAS_G1 = data_MSAS_G1.drop("('', 'folio')", axis=1)
+
         return data_MSAS_G1
+
 
     
 
