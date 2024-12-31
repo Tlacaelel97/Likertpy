@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from pathlib import Path
 
 class FileRead:
@@ -59,3 +60,25 @@ class FileRead:
         except Exception as err:
             print(f"Error al crear path. {err}")
             raise Exception(err)
+        
+class CleanData:
+    """
+    Bad data could be:
+
+    Empty cells
+    Data in wrong format
+    Wrong data
+    Duplicates
+    """
+
+    def __init__(self, data:pd.DataFrame):
+        self.data = data
+
+    def clean_data(self):
+        # Select group of interest
+        # In this case G1 but should be change to make it interactive
+        data_MSAS_G1 = self.data.iloc[:,np.r_[0:24]]
+        return data_MSAS_G1
+
+    
+
