@@ -74,8 +74,9 @@ class CleanData:
     Duplicates
     """
 
-    def __init__(self, data: pd.DataFrame):
+    def __init__(self, data: pd.DataFrame, group: str):
         self.data = data
+        self.group = group
 
     def clean_data(self):
         """
@@ -94,21 +95,21 @@ class CleanData:
 
         # Select group of interest
         # In this case G1 but should be change to make it interactive
-        data_MSAS_G1 = self.data.iloc[:, np.r_[0:24]]
+        data_MSAS_G = self.data.iloc[:, self._select_group_range()]
 
         # Drop Na Values
-        data_MSAS_G1 = data_MSAS_G1.dropna()
+        data_MSAS_G = data_MSAS_G.dropna()
 
         # Select survey's number (0,1,2)
-        data_MSAS_G1 = data_MSAS_G1.loc[data_MSAS_G1["('', 'numencuesta')"] == 0]
-        data_MSAS_G1 = data_MSAS_G1.drop("('', 'numencuesta')", axis=1)
-        data_MSAS_G1 = data_MSAS_G1.drop("('', 'folio')", axis=1)
+        data_MSAS_G = data_MSAS_G.loc[data_MSAS_G["('', 'numencuesta')"] == 0]
+        data_MSAS_G = data_MSAS_G.drop("('', 'numencuesta')", axis=1)
+        data_MSAS_G = data_MSAS_G.drop("('', 'folio')", axis=1)
 
         # Replace numerical data
 
-        data_MSAS_G1 = self._replace_numerical_data(data_MSAS_G1)
+        data_MSAS_G = self._replace_numerical_data(data_MSAS_G)
 
-        return data_MSAS_G1
+        return data_MSAS_G
 
     def _replace_numerical_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -141,3 +142,13 @@ class CleanData:
                     Likertpy.scales.msas_G1[response]
                 )
         return data
+
+    def _select_group_range(self):
+        # Dict of ranges
+        ranges = {"G1": np.r_[0:24]}
+        # Select group range
+        try:
+            group_range = ranges[self.group]
+        except KeyError:
+            raise ValueError(f"Group '{self.group}' not found in questions ranges")
+        return group_range
