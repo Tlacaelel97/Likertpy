@@ -134,18 +134,30 @@ class CleanData:
         # Change dataframe's dtype from float to string (object)
         data = data.astype("str")
         # For every answer in selected scale
-        for response in range(len(Likertpy.scales.msas_G1)):
+        msas_scale = self._select_group_scale()
+        for response in range(len(msas_scale)):
             # For each column
             for element in data.columns:
                 # Change numerical data for question' answer
                 data.loc[data[element] == str(response) + ".0", element] = (
-                    Likertpy.scales.msas_G1[response]
+                    msas_scale[response]
                 )
         return data
+    
+    def _select_group_scale(self):
+        scales = {
+            "G1": Likertpy.scales.msas_G1,
+            "G2": Likertpy.scales.msas_G2,
+            "G3": Likertpy.scales.msas_G3,
+        }# Define the scales for each group
+        try:
+            return scales[self.group] # Return the scale for the selected group
+        except KeyError:
+            raise ValueError(f"Group '{self.group}' not found in scales")
 
     def _select_group_range(self):
         # Dict of ranges
-        ranges = {"G1": np.r_[0:24]}
+        ranges = {"G1": np.r_[0:24], "G2": np.r_[0, 1, 24:46], "G3": np.r_[0, 1, 46:68], "G4": np.r_[0, 1, 68:79]}
         # Select group range
         try:
             group_range = ranges[self.group]
