@@ -23,7 +23,6 @@ msas_G2: Scale = [
 ]
 
 msas_G3: Scale = [
-    "No me pasó",
     "Nada",
     "Un poco",
     "Regular",

@@ -329,16 +329,16 @@ def plot_likert(
     # Set xlabel
     if counts_are_percentages:
         xlabels = [str(label) + "%" if label != "" else "" for label in xlabels]
-        axes.set_xlabel("Porcentaje de Respuestas")
+        axes.set_xlabel("Porcentaje de Respuestas", fontsize=20)
     else:
-        axes.set_xlabel("Número de Respuestas")
+        axes.set_xlabel("Número de Respuestas", fontsize=20)
 
     axes.set_xticks(xvalues)
     axes.set_xticklabels(xlabels)
 
     # Reposition the legend if present
     if axes.get_legend():
-        axes.legend(bbox_to_anchor=(1.05, 1))
+        axes.legend(bbox_to_anchor=(1.05, 1), title="Escala de Respuestas")
 
     # Adjust padding
     counts_sum = counts.sum(axis="columns").max()
@@ -356,7 +356,7 @@ def plot_likert(
         )
 
     # Add name
-    axes.set_title("MSAS")
+    axes.set_title("MSAS", fontsize=30)
     plt.show()
     return axes
 
