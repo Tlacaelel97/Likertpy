@@ -103,9 +103,10 @@ class CleanData:
         ValueError: If the specified group is not supported or required columns are missing.
     """
 
-    def __init__(self, data: pd.DataFrame, group: str):
+    def __init__(self, data: pd.DataFrame, group: str, survey_number: int = 0):
         self.data = data
         self.group = group
+        self.survey_number = survey_number
 
     def clean_data(self):
         """
@@ -137,7 +138,7 @@ class CleanData:
         data_MSAS_G = data_MSAS_G.dropna()
 
         # Select survey's number (0,1,2)
-        data_MSAS_G = data_MSAS_G.loc[data_MSAS_G["('', 'numencuesta')"] == 0]
+        data_MSAS_G = data_MSAS_G.loc[data_MSAS_G["('', 'numencuesta')"] == self.survey_number]
         data_MSAS_G = data_MSAS_G.drop("('', 'numencuesta')", axis=1)
         data_MSAS_G = data_MSAS_G.drop("('', 'folio')", axis=1)
 
