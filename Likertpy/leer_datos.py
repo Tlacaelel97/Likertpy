@@ -144,6 +144,10 @@ class CleanData:
         # Drop Na Values
         data_MSAS_G = data_MSAS_G.dropna()
 
+        # Filter complete folios
+
+        data_MSAS_G = self.filter_complete_folios(data_MSAS_G)
+
         # Select survey's number (0,1,2)
         data_MSAS_G = data_MSAS_G.loc[
             data_MSAS_G["('', 'numencuesta')"] == self.survey_number
@@ -156,6 +160,24 @@ class CleanData:
             data_MSAS_G = self._replace_numerical_data(data_MSAS_G)
 
         return data_MSAS_G
+    
+    def filter_complete_folios(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Filtra el dataframe para conservar solo los folios con exactamente 3 'numencuesta'.
+
+        Args:
+            df (pd.DataFrame): Dataframe con MultiIndex en columnas.
+
+        Returns:
+            pd.DataFrame: Dataframe filtrado.
+        """
+        # Identificar los folios únicos y contar los 'numencuesta' asociados
+        folio_counts = df.groupby(("('', 'folio')")).size()
+
+        # Filtrar folios con exactamente 3 'numencuesta'
+        valid_folios = folio_counts[folio_counts == 3].index
+        filtered_df = df[df[("('', 'folio')")].isin(valid_folios)]
+
+        return filtered_df
 
     def _replace_numerical_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """
