@@ -365,70 +365,94 @@ def plot_likert(
 def plot_mode(
     df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
 ) -> matplotlib.axes.Axes:
-    # data cleaning
-    data_cleaned_1 = CleanData(
-        df, group=group, survey_number=0, replace_numerical_data=False
-    ).clean_data()
-    data_cleaned_2 = CleanData(
-        df, group=group, survey_number=1, replace_numerical_data=False
-    ).clean_data()
-    data_cleaned_3 = CleanData(
-        df, group=group, survey_number=2, replace_numerical_data=False
-    ).clean_data()
 
-    # reset index
-    data_cleaned_1 = data_cleaned_1.reset_index(drop=True)
-    data_cleaned_2 = data_cleaned_2.reset_index(drop=True)
-    data_cleaned_3 = data_cleaned_3.reset_index(drop=True)
-
-    # transpose data
-    data_transpose_1 = data_cleaned_1.transpose()
-    data_transpose_2 = data_cleaned_2.transpose()
-    data_transpose_3 = data_cleaned_3.transpose()
-
+    df1, df2, df3 = _configure_data_for_heatmap(df, group)
     # calculate mode
-    mode_df = calculate_mode(data_transpose_1, data_transpose_2, data_transpose_3)
+    mode_df = calculate_mode(df1, df2, df3)
 
     # change dtype to float
     mode_df = mode_df.astype(float)
 
+    # initialize plot
+    fig = plt.figure(figsize=(15, 9))
+    axes = fig.gca()
+
     # plot mode
-    plt.imshow(mode_df, cmap="coolwarm", aspect="auto")
+    im = axes.imshow(mode_df, cmap="coolwarm", aspect="auto")
 
     # Add colorbar
-    plt.colorbar()
+    fig.colorbar(im, ax=axes)
 
     # Add titles and labels
-    plt.yticks(ticks=range(len(mode_df.index)), labels=mode_df.index)
-    plt.title(f"Moda {group}", y=1.08, fontsize=30)
-    plt.ylabel("Preguntas", fontsize=15)
-    plt.xlabel("Pacientes", fontsize=15)
+    axes.set_yticks(range(len(mode_df.index)))
+    axes.set_yticklabels(mode_df.index)
+    axes.set_title(f"Moda {group}", y=1.08, fontsize=30)
+    axes.set_ylabel("Preguntas", fontsize=15)
+    axes.set_xlabel("Pacientes", fontsize=15)
     plt.show()
+    return axes
 
 
 def calculate_mode(
-    data_3: pd.DataFrame,
     data_1: pd.DataFrame,
     data_2: pd.DataFrame,
+    data_3: pd.DataFrame,
 ) -> pd.DataFrame:
+    """
+    Computes the mode for each corresponding cell across three DataFrames.
+
+    This function calculates the mode (most frequently occurring value) for each
+    cell position across three given DataFrames (`data_1`, `data_2`, `data_3`).
+    If multiple values share the highest frequency, the first occurring mode is selected.
+
+    Args:
+        data_1 (pd.DataFrame): The first DataFrame containing survey responses or data.
+        data_2 (pd.DataFrame): The second DataFrame containing survey responses or data.
+        data_3 (pd.DataFrame): The third DataFrame, which also defines the structure
+            (index and columns) for the output.
+
+    Returns:
+        pd.DataFrame: A DataFrame with the same structure as `data_3`, where each
+        cell contains the mode of the corresponding values from `data_1`, `data_2`, and `data_3`.
+
+    Raises:
+        KeyError: If any of the DataFrames do not contain the expected indices or columns.
+        IndexError: If there are misaligned indices between DataFrames.
+
+
+    Notes:
+        - Assumes that all input DataFrames have identical indices and columns.
+        - Handles  numerical data, can drop NA values.
+        - Uses `pandas.Series.mode()` to compute the most frequent value.
+    """
+
     # Preparar un DataFrame vacío para almacenar los resultados
     mode_df = pd.DataFrame(index=data_3.index, columns=data_3.columns)
 
     # Calcular la moda para cada posición
     for col in data_3.columns:
         for idx in data_3.index:
-            # Extraer los valores de las tres tablas
-            values = [
-                data_1.at[idx, col],
-                data_2.at[idx, col],
-                data_3.at[idx, col],
-            ]
+            try:
+                # Verificar que las claves existen en los DataFrames antes de acceder
+                values = [
+                    data_1.at[idx, col],
+                    data_2.at[idx, col],
+                    data_3.at[idx, col],
+                ]
+            except KeyError as e:
+                raise KeyError(
+                    f"Missing index '{idx}' or column '{col}' in one of the input DataFrames"
+                ) from e
 
             # Calcular la moda de estos valores
             mode_value = pd.Series(values).mode()
 
-            # Almacenar el primer valor de moda en el DataFrame (en caso de múltiples modas)
-            mode_df.at[idx, col] = mode_value.iloc[0]
+            try:
+                # Almacenar el primer valor de moda en el DataFrame (en caso de múltiples modas)
+                mode_df.at[idx, col] = mode_value.iloc[0]
+            except IndexError:
+                # Si no hay moda (todos los valores son únicos), asignar NaN
+                mode_df.at[idx, col] = np.nan
 
     return mode_df
 
@@ -544,3 +568,28 @@ def raw_scale(df: pd.DataFrame) -> pd.DataFrame:
     df_m = df.melt()
     scale = df_m["value"].drop_duplicates()
     return scale
+
+
+def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
+    # data cleaning
+    data_cleaned_1 = CleanData(
+        df, group=group, survey_number=0, replace_numerical_data=False
+    ).clean_data()
+    data_cleaned_2 = CleanData(
+        df, group=group, survey_number=1, replace_numerical_data=False
+    ).clean_data()
+    data_cleaned_3 = CleanData(
+        df, group=group, survey_number=2, replace_numerical_data=False
+    ).clean_data()
+
+    # reset index
+    data_cleaned_1 = data_cleaned_1.reset_index(drop=True)
+    data_cleaned_2 = data_cleaned_2.reset_index(drop=True)
+    data_cleaned_3 = data_cleaned_3.reset_index(drop=True)
+
+    # transpose data
+    data_transpose_1 = data_cleaned_1.transpose()
+    data_transpose_2 = data_cleaned_2.transpose()
+    data_transpose_3 = data_cleaned_3.transpose()
+
+    return data_transpose_1, data_transpose_2, data_transpose_3
