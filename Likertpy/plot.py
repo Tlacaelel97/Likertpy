@@ -366,30 +366,17 @@ def plot_mode(
     df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
 ) -> matplotlib.axes.Axes:
 
+    # Clean and parse data
     heathmap_data = _configure_data_for_heatmap(df, group)
+
     # calculate mode
     mode_df = calculate_mode(heathmap_data[0], heathmap_data[1], heathmap_data[2])
 
     # change dtype to float
     mode_df = mode_df.astype(float)
 
-    # initialize plot
-    fig = plt.figure(figsize=(15, 9))
-    axes = fig.gca()
-
-    # plot mode
-    im = axes.imshow(mode_df, cmap="coolwarm", aspect="auto")
-
-    # Add colorbar
-    fig.colorbar(im, ax=axes)
-
-    # Add titles and labels
-    axes.set_yticks(range(len(mode_df.index)))
-    axes.set_yticklabels(mode_df.index)
-    axes.set_title(f"Moda {group}", y=1.08, fontsize=30)
-    axes.set_ylabel("Preguntas", fontsize=15)
-    axes.set_xlabel("Pacientes", fontsize=15)
-    plt.show()
+    # Create the heatmap
+    axes = _create_heatmap(mode_df, "Moda", group)
     return axes
 
 
@@ -584,8 +571,8 @@ def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
         group (str): The group identifier (e.g., "G1", "G2", etc.) used to filter relevant survey questions.
 
     Returns:
-        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: 
-        A tuple containing three transposed DataFrames, each representing a survey iteration (0, 1, 2). 
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        A tuple containing three transposed DataFrames, each representing a survey iteration (0, 1, 2).
 
     Raises:
         ValueError: If the specified group is not found in the dataset.
@@ -594,13 +581,13 @@ def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
     Notes:
         - The `CleanData` class is used to clean the data without replacing numerical responses.
         - The transposed format is useful for heatmap visualizations, where questions are typically placed as rows.
-    
+
     """
     # Verify data
     valid_groups = {"G1", "G2", "G3"}  # Se debe actualizar según corresponda
     if group not in valid_groups:
         raise ValueError(f"Invalid group '{group}'. Expected one of {valid_groups}.")
-    
+
     try:
         # Data cleaning
         data_cleaned_1 = CleanData(
@@ -615,13 +602,15 @@ def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
 
     except KeyError as e:
         raise KeyError(f"Column access error while processing group '{group}': {e}")
-    
+
     except ValueError as e:
         raise ValueError(f"Error while cleaning data for group '{group}': {e}")
-    
+
     # Verufy that DataFrames are not emptys after cleaning
     if data_cleaned_1.empty or data_cleaned_2.empty or data_cleaned_3.empty:
-        raise ValueError(f"Cleaned data for group '{group}' is empty. Check the dataset.")
+        raise ValueError(
+            f"Cleaned data for group '{group}' is empty. Check the dataset."
+        )
 
     try:
         # Reset index
@@ -638,3 +627,55 @@ def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
         raise KeyError(f"Unexpected KeyError while restructuring data: {e}")
 
     return data_transpose_1, data_transpose_2, data_transpose_3
+
+
+def _create_heatmap(
+    data: pd.DataFrame, type: str, group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    """
+    Generates a heatmap to visualize survey data distributions.
+
+    This function creates a heatmap using `matplotlib` to display the values of a given
+    DataFrame, using a color gradient to represent variations in the data.
+
+    Args:
+        data (pd.DataFrame): The DataFrame containing the numerical values to be plotted.
+        type (str): The type or category of the heatmap, must be "Moda", "Maximo", "Minimo", Gradiente.
+        group (str): The group identifier to be included in the plot title.
+        **kwargs: Additional keyword arguments for future customization.
+
+    Returns:
+        matplotlib.axes.Axes: The axes object of the generated heatmap.
+
+    Raises:
+        ValueError: If `data` is empty or not a valid DataFrame.
+        TypeError: If `type` or `group` are not strings.
+    """
+    # Validate input types
+    if not isinstance(data, pd.DataFrame):
+        raise ValueError("The 'data' argument must be a pandas DataFrame.")
+    if data.empty:
+        raise ValueError("The provided DataFrame is empty. Cannot generate heatmap.")
+    if not isinstance(type, str) or not isinstance(group, str):
+        raise TypeError("The 'type' and 'group' arguments must be strings.")
+
+    # initialize plot
+    fig = plt.figure(figsize=(15, 9))
+    axes = fig.gca()
+
+    # plot mode
+    im = axes.imshow(data, cmap="coolwarm", aspect="auto")
+
+    # Add colorbar
+    fig.colorbar(im, ax=axes)
+
+    # Add titles and labels
+    axes.set_yticks(range(len(data.index)))
+    axes.set_yticklabels(data.index)
+    axes.set_title(f"{type} {group}", y=1.08, fontsize=30)
+    axes.set_ylabel("Preguntas", fontsize=15)
+    axes.set_xlabel("Pacientes", fontsize=15)
+
+    plt.show()
+
+    return axes
