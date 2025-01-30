@@ -365,6 +365,36 @@ def plot_likert(
 def plot_mode(
     df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
 ) -> matplotlib.axes.Axes:
+    """
+    Generates a heatmap representing the mode of survey responses for a given group.
+
+    This function processes the provided survey data by:
+    - Cleaning and structuring the data for heatmap visualization.
+    - Computing the mode of responses across three survey iterations.
+    - Converting the data to float format for proper visualization.
+    - Creating and displaying a heatmap using `matplotlib`.
+
+    Args:
+        df (Union[pd.DataFrame, pd.Series]): The survey data containing responses.
+        group (str): The group identifier to filter and process the data.
+        **kwargs: Additional keyword arguments for future customization.
+
+    Returns:
+        matplotlib.axes.Axes: The axes object of the generated heatmap.
+
+    Raises:
+        ValueError: If `df` is empty or not a valid DataFrame/Series.
+        TypeError: If `group` is not a string.
+        KeyError: If the required group is not found in the dataset.
+    """
+
+    # Validate input types
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
+    if df.empty:
+        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(group, str):
+        raise TypeError("The 'group' argument must be a string.")
 
     # Clean and parse data
     heathmap_data = _configure_data_for_heatmap(df, group)
