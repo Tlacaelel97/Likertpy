@@ -400,7 +400,7 @@ def plot_mode(
     heathmap_data = _configure_data_for_heatmap(df, group)
 
     # calculate mode
-    mode_df = calculate_mode(heathmap_data[0], heathmap_data[1], heathmap_data[2])
+    mode_df = calculate_mode(heathmap_data)
 
     # change dtype to float
     mode_df = mode_df.astype(float)
@@ -411,50 +411,56 @@ def plot_mode(
 
 
 def calculate_mode(
-    data_1: pd.DataFrame,
-    data_2: pd.DataFrame,
-    data_3: pd.DataFrame,
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 ) -> pd.DataFrame:
     """
     Computes the mode for each corresponding cell across three DataFrames.
 
     This function calculates the mode (most frequently occurring value) for each
-    cell position across three given DataFrames (`data_1`, `data_2`, `data_3`).
-    If multiple values share the highest frequency, the first occurring mode is selected.
+    cell position across three given DataFrames. If multiple values share the highest
+    frequency, the first occurring mode is selected. If no mode exists (i.e., all values
+    are unique), NaN is assigned.
 
     Args:
-        data_1 (pd.DataFrame): The first DataFrame containing survey responses or data.
-        data_2 (pd.DataFrame): The second DataFrame containing survey responses or data.
-        data_3 (pd.DataFrame): The third DataFrame, which also defines the structure
-            (index and columns) for the output.
+        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple containing
+            three DataFrames with identical structures (indices and columns).
 
     Returns:
-        pd.DataFrame: A DataFrame with the same structure as `data_3`, where each
-        cell contains the mode of the corresponding values from `data_1`, `data_2`, and `data_3`.
+        pd.DataFrame: A DataFrame with the same structure as the input DataFrames, where
+        each cell contains the mode of the corresponding values from the three DataFrames.
 
     Raises:
         KeyError: If any of the DataFrames do not contain the expected indices or columns.
-        IndexError: If there are misaligned indices between DataFrames.
-
+        IndexError: If there is no mode (i.e., all values are unique), resulting in an empty mode series.
 
     Notes:
         - Assumes that all input DataFrames have identical indices and columns.
-        - Handles  numerical data, can drop NA values.
+        - Handles numerical and categorical data.
         - Uses `pandas.Series.mode()` to compute the most frequent value.
-    """
+        - If no mode is found, the function assigns NaN to the corresponding cell.
 
+    Example:
+        >>> df1 = pd.DataFrame({"A": [1, 2, 2], "B": [3, 4, 4]})
+        >>> df2 = pd.DataFrame({"A": [1, 3, 2], "B": [3, 5, 4]})
+        >>> df3 = pd.DataFrame({"A": [1, 2, 3], "B": [3, 4, 6]})
+        >>> calculate_mode((df1, df2, df3))
+           A    B
+        0  1.0  3.0
+        1  NaN  4.0
+        2  2.0  4.0
+    """
     # Preparar un DataFrame vacío para almacenar los resultados
-    mode_df = pd.DataFrame(index=data_3.index, columns=data_3.columns)
+    mode_df = pd.DataFrame(index=data[0].index, columns=data[0].columns)
 
     # Calcular la moda para cada posición
-    for col in data_3.columns:
-        for idx in data_3.index:
+    for col in data[0].columns:
+        for idx in data[0].index:
             try:
                 # Verificar que las claves existen en los DataFrames antes de acceder
                 values = [
-                    data_1.at[idx, col],
-                    data_2.at[idx, col],
-                    data_3.at[idx, col],
+                    data[0].at[idx, col],
+                    data[1].at[idx, col],
+                    data[2].at[idx, col],
                 ]
             except KeyError as e:
                 raise KeyError(
