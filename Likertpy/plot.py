@@ -34,6 +34,7 @@ except RuntimeError as err:
 from Likertpy import Scale
 import Likertpy.colors as builtin_colors
 from Likertpy import Interval
+from Likertpy.leer_datos import CleanData
 
 HIDE_EXCESSIVE_TICK_LABELS = True
 PADDING_LEFT = 0.02  # fraction of the total width to use as padding
@@ -359,6 +360,77 @@ def plot_likert(
     axes.set_title("MSAS", fontsize=30)
     plt.show()
     return axes
+
+
+def plot_mode(
+    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    # data cleaning
+    data_cleaned_1 = CleanData(
+        df, group=group, survey_number=0, replace_numerical_data=False
+    ).clean_data()
+    data_cleaned_2 = CleanData(
+        df, group=group, survey_number=1, replace_numerical_data=False
+    ).clean_data()
+    data_cleaned_3 = CleanData(
+        df, group=group, survey_number=2, replace_numerical_data=False
+    ).clean_data()
+
+    # reset index
+    data_cleaned_1 = data_cleaned_1.reset_index(drop=True)
+    data_cleaned_2 = data_cleaned_2.reset_index(drop=True)
+    data_cleaned_3 = data_cleaned_3.reset_index(drop=True)
+
+    # transpose data
+    data_transpose_1 = data_cleaned_1.transpose()
+    data_transpose_2 = data_cleaned_2.transpose()
+    data_transpose_3 = data_cleaned_3.transpose()
+
+    # calculate mode
+    mode_df = calculate_mode(data_transpose_1, data_transpose_2, data_transpose_3)
+
+    # change dtype to float
+    mode_df = mode_df.astype(float)
+
+    # plot mode
+    plt.imshow(mode_df, cmap="coolwarm", aspect="auto")
+
+    # Add colorbar
+    plt.colorbar()
+
+    # Add titles and labels
+    plt.yticks(ticks=range(len(mode_df.index)), labels=mode_df.index)
+    plt.title(f"Moda {group}", y=1.08, fontsize=30)
+    plt.ylabel("Preguntas", fontsize=15)
+    plt.xlabel("Pacientes", fontsize=15)
+    plt.show()
+
+
+def calculate_mode(
+    data_3: pd.DataFrame,
+    data_1: pd.DataFrame,
+    data_2: pd.DataFrame,
+) -> pd.DataFrame:
+    # Preparar un DataFrame vacío para almacenar los resultados
+    mode_df = pd.DataFrame(index=data_3.index, columns=data_3.columns)
+
+    # Calcular la moda para cada posición
+    for col in data_3.columns:
+        for idx in data_3.index:
+            # Extraer los valores de las tres tablas
+            values = [
+                data_1.at[idx, col],
+                data_2.at[idx, col],
+                data_3.at[idx, col],
+            ]
+
+            # Calcular la moda de estos valores
+            mode_value = pd.Series(values).mode()
+
+            # Almacenar el primer valor de moda en el DataFrame (en caso de múltiples modas)
+            mode_df.at[idx, col] = mode_value.iloc[0]
+
+    return mode_df
 
 
 def likert_counts(
