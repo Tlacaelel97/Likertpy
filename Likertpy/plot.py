@@ -410,6 +410,57 @@ def plot_mode(
     return axes
 
 
+def plot_max(
+    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    """
+    Plots a heatmap of the maximum values across three cleaned DataFrames.
+
+    This function cleans the input survey data, calculates the element-wise maximum 
+    across three DataFrames, and then generates a heatmap visualization. The heatmap 
+    displays the maximum value at each position across the three DataFrames.
+
+    Args:
+        df (Union[pd.DataFrame, pd.Series]): The input DataFrame or Series containing 
+            the survey data.
+        group (str): The group identifier (e.g., "G1", "G2", "G3") to filter the data 
+            for the specific survey group.
+        **kwargs: Additional keyword arguments passed to the heatmap plotting function.
+
+    Returns:
+        matplotlib.axes.Axes: The axes object for the generated heatmap.
+
+    Raises:
+        ValueError: If the `df` argument is neither a pandas DataFrame nor a Series,
+            or if the provided dataset is empty.
+        TypeError: If the `group` argument is not a string.
+
+    Example:
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> plot_max(df, group="G1")
+    """
+    # Validate input types
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
+    if df.empty:
+        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(group, str):
+        raise TypeError("The 'group' argument must be a string.")
+
+    # Clean and parse data
+    heathmap_data = _configure_data_for_heatmap(df, group)
+
+    # calculate maximum
+    max_df = calculate_max(heathmap_data)
+
+    # change dtype to float
+    max_df = max_df.astype(float)
+
+    # Create the heatmap
+    axes = _create_heatmap(max_df, "Máximo", group)
+    return axes
+
+
 def calculate_mode(
     data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 ) -> pd.DataFrame:
@@ -478,6 +529,40 @@ def calculate_mode(
                 mode_df.at[idx, col] = np.nan
 
     return mode_df
+
+
+def calculate_max(
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+) -> pd.DataFrame:
+    """
+    Calculates the element-wise maximum across three DataFrames.
+
+    This function computes the maximum value for each corresponding cell position
+    across three given DataFrames. The result is a DataFrame where each cell contains
+    the maximum value of the corresponding cells from the three input DataFrames.
+
+    Args:
+        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple containing three
+            DataFrames with identical structures (indices and columns).
+
+    Returns:
+        pd.DataFrame: A DataFrame with the same structure as the input DataFrames, where
+        each cell contains the maximum value of the corresponding cells from the three DataFrames.
+
+    Example:
+        >>> df1 = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df2 = pd.DataFrame({"A": [3, 2, 1], "B": [6, 5, 4]})
+        >>> df3 = pd.DataFrame({"A": [2, 4, 3], "B": [5, 6, 7]})
+        >>> calculate_max((df1, df2, df3))
+           A  B
+        0  3  6
+        1  4  6
+        2  3  7
+    """
+    max_data = pd.DataFrame(
+        np.maximum(np.maximum(data[0], data[1]), data[2]), columns=data[2].columns
+    )
+    return max_data
 
 
 def likert_counts(
