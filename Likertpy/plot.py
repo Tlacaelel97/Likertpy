@@ -366,9 +366,9 @@ def plot_mode(
     df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
 ) -> matplotlib.axes.Axes:
 
-    df1, df2, df3 = _configure_data_for_heatmap(df, group)
+    heathmap_data = _configure_data_for_heatmap(df, group)
     # calculate mode
-    mode_df = calculate_mode(df1, df2, df3)
+    mode_df = calculate_mode(heathmap_data[0], heathmap_data[1], heathmap_data[2])
 
     # change dtype to float
     mode_df = mode_df.astype(float)
@@ -571,25 +571,70 @@ def raw_scale(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
-    # data cleaning
-    data_cleaned_1 = CleanData(
-        df, group=group, survey_number=0, replace_numerical_data=False
-    ).clean_data()
-    data_cleaned_2 = CleanData(
-        df, group=group, survey_number=1, replace_numerical_data=False
-    ).clean_data()
-    data_cleaned_3 = CleanData(
-        df, group=group, survey_number=2, replace_numerical_data=False
-    ).clean_data()
+    """
+    Prepares and structures survey data for heatmap visualization.
 
-    # reset index
-    data_cleaned_1 = data_cleaned_1.reset_index(drop=True)
-    data_cleaned_2 = data_cleaned_2.reset_index(drop=True)
-    data_cleaned_3 = data_cleaned_3.reset_index(drop=True)
+    This function processes survey data by:
+    - Cleaning and filtering responses for a specified group (`group`) across three survey iterations (0, 1, 2).
+    - Resetting the index of each cleaned dataset for consistency.
+    - Transposing the cleaned data to facilitate heatmap generation.
 
-    # transpose data
-    data_transpose_1 = data_cleaned_1.transpose()
-    data_transpose_2 = data_cleaned_2.transpose()
-    data_transpose_3 = data_cleaned_3.transpose()
+    Args:
+        df (pd.DataFrame): The raw survey dataset containing responses for multiple groups.
+        group (str): The group identifier (e.g., "G1", "G2", etc.) used to filter relevant survey questions.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: 
+        A tuple containing three transposed DataFrames, each representing a survey iteration (0, 1, 2). 
+
+    Raises:
+        ValueError: If the specified group is not found in the dataset.
+        KeyError: If required columns for the survey responses are missing.
+
+    Notes:
+        - The `CleanData` class is used to clean the data without replacing numerical responses.
+        - The transposed format is useful for heatmap visualizations, where questions are typically placed as rows.
+    
+    """
+    # Verify data
+    valid_groups = {"G1", "G2", "G3"}  # Se debe actualizar según corresponda
+    if group not in valid_groups:
+        raise ValueError(f"Invalid group '{group}'. Expected one of {valid_groups}.")
+    
+    try:
+        # Data cleaning
+        data_cleaned_1 = CleanData(
+            df, group=group, survey_number=0, replace_numerical_data=False
+        ).clean_data()
+        data_cleaned_2 = CleanData(
+            df, group=group, survey_number=1, replace_numerical_data=False
+        ).clean_data()
+        data_cleaned_3 = CleanData(
+            df, group=group, survey_number=2, replace_numerical_data=False
+        ).clean_data()
+
+    except KeyError as e:
+        raise KeyError(f"Column access error while processing group '{group}': {e}")
+    
+    except ValueError as e:
+        raise ValueError(f"Error while cleaning data for group '{group}': {e}")
+    
+    # Verufy that DataFrames are not emptys after cleaning
+    if data_cleaned_1.empty or data_cleaned_2.empty or data_cleaned_3.empty:
+        raise ValueError(f"Cleaned data for group '{group}' is empty. Check the dataset.")
+
+    try:
+        # Reset index
+        data_cleaned_1 = data_cleaned_1.reset_index(drop=True)
+        data_cleaned_2 = data_cleaned_2.reset_index(drop=True)
+        data_cleaned_3 = data_cleaned_3.reset_index(drop=True)
+
+        # Transpose data
+        data_transpose_1 = data_cleaned_1.transpose()
+        data_transpose_2 = data_cleaned_2.transpose()
+        data_transpose_3 = data_cleaned_3.transpose()
+
+    except KeyError as e:
+        raise KeyError(f"Unexpected KeyError while restructuring data: {e}")
 
     return data_transpose_1, data_transpose_2, data_transpose_3
