@@ -7,6 +7,7 @@ from .plot import (
     plot_likert,
     plot_mode,
     plot_max,
+    plot_min,
     likert_counts,
     likert_percentages,
     likert_response,

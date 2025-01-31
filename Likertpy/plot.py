@@ -416,14 +416,14 @@ def plot_max(
     """
     Plots a heatmap of the maximum values across three cleaned DataFrames.
 
-    This function cleans the input survey data, calculates the element-wise maximum 
-    across three DataFrames, and then generates a heatmap visualization. The heatmap 
+    This function cleans the input survey data, calculates the element-wise maximum
+    across three DataFrames, and then generates a heatmap visualization. The heatmap
     displays the maximum value at each position across the three DataFrames.
 
     Args:
-        df (Union[pd.DataFrame, pd.Series]): The input DataFrame or Series containing 
+        df (Union[pd.DataFrame, pd.Series]): The input DataFrame or Series containing
             the survey data.
-        group (str): The group identifier (e.g., "G1", "G2", "G3") to filter the data 
+        group (str): The group identifier (e.g., "G1", "G2", "G3") to filter the data
             for the specific survey group.
         **kwargs: Additional keyword arguments passed to the heatmap plotting function.
 
@@ -458,6 +458,57 @@ def plot_max(
 
     # Create the heatmap
     axes = _create_heatmap(max_df, "Máximo", group)
+    return axes
+
+
+def plot_min(
+    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    """
+    Generates a heatmap representing the minimum values across multiple datasets.
+
+    This function processes the given DataFrame or Series, extracts relevant data for 
+    heatmap visualization, computes the element-wise minimum across datasets, and 
+    plots the resulting heatmap.
+
+    Args:
+        df (Union[pd.DataFrame, pd.Series]): A pandas DataFrame or Series containing 
+            the data to be analyzed.
+        group (str): The name of the group (e.g., "G1", "G2", "G3") used to filter and preprocess the data.
+        **kwargs: Additional keyword arguments for potential customization.
+
+    Returns:
+        matplotlib.axes.Axes: The matplotlib Axes object containing the heatmap.
+
+    Raises:
+        ValueError: If `df` is not a DataFrame or Series, or if it is empty.
+        TypeError: If `group` is not a string.
+
+    Notes:
+        - The function internally cleans and transposes the data before computing the minimum.
+        - The minimum is calculated across three preprocessed datasets.
+        - The resulting values are converted to `float` to ensure consistency in visualization.
+        - Uses a predefined color scheme (`coolwarm`) for heatmap generation.
+    """
+    # Validate input types
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
+    if df.empty:
+        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(group, str):
+        raise TypeError("The 'group' argument must be a string.")
+
+    # Clean and parse data
+    heathmap_data = _configure_data_for_heatmap(df, group)
+
+    # calculate minimum
+    min_df = calculate_min(heathmap_data)
+
+    # change dtype to float
+    min_df = min_df.astype(float)
+
+    # Create the heatmap
+    axes = _create_heatmap(min_df, "Mínimo", group)
     return axes
 
 
@@ -559,10 +610,56 @@ def calculate_max(
         1  4  6
         2  3  7
     """
+    if len(data) != 3:
+        raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
     max_data = pd.DataFrame(
         np.maximum(np.maximum(data[0], data[1]), data[2]), columns=data[2].columns
     )
     return max_data
+
+
+def calculate_min(
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+) -> pd.DataFrame:
+    """
+    Computes the element-wise minimum across three DataFrames.
+
+    This function takes a tuple containing three pandas DataFrames and returns a new
+    DataFrame where each cell contains the minimum value from the corresponding
+    cells of the three input DataFrames.
+
+    Args:
+        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple of three
+            DataFrames with identical structure (same indices and columns).
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the element-wise minimum values.
+
+    Raises:
+        ValueError: If the input tuple does not contain exactly three DataFrames.
+        KeyError: If the DataFrames have misaligned indices or columns.
+
+    Example:
+        >>> df1 = pd.DataFrame({"A": [1, 5, 3], "B": [4, 2, 6]})
+        >>> df2 = pd.DataFrame({"A": [2, 3, 1], "B": [5, 1, 7]})
+        >>> df3 = pd.DataFrame({"A": [3, 4, 2], "B": [6, 0, 8]})
+        >>> calculate_min((df1, df2, df3))
+           A  B
+        0  1  4
+        1  3  0
+        2  1  6
+    """
+    if len(data) != 3:
+        raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
+
+    try:
+        min_data = pd.DataFrame(
+            np.minimum(np.minimum(data[0], data[1]), data[2]), columns=data[2].columns
+        )
+    except KeyError as e:
+        raise KeyError("Mismatched indices or columns in input DataFrames.") from e
+
+    return min_data
 
 
 def likert_counts(
