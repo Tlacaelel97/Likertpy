@@ -467,12 +467,12 @@ def plot_min(
     """
     Generates a heatmap representing the minimum values across multiple datasets.
 
-    This function processes the given DataFrame or Series, extracts relevant data for 
-    heatmap visualization, computes the element-wise minimum across datasets, and 
+    This function processes the given DataFrame or Series, extracts relevant data for
+    heatmap visualization, computes the element-wise minimum across datasets, and
     plots the resulting heatmap.
 
     Args:
-        df (Union[pd.DataFrame, pd.Series]): A pandas DataFrame or Series containing 
+        df (Union[pd.DataFrame, pd.Series]): A pandas DataFrame or Series containing
             the data to be analyzed.
         group (str): The name of the group (e.g., "G1", "G2", "G3") used to filter and preprocess the data.
         **kwargs: Additional keyword arguments for potential customization.
@@ -509,6 +509,28 @@ def plot_min(
 
     # Create the heatmap
     axes = _create_heatmap(min_df, "Mínimo", group)
+    return axes
+
+
+def plot_gradient(
+    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    # Validate input types
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
+    if df.empty:
+        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(group, str):
+        raise TypeError("The 'group' argument must be a string.")
+
+    # Clean and parse data
+    heathmap_data = _configure_data_for_heatmap(df, group)
+
+    # calculate gradient
+    gradient_df = calculate_gradient(heathmap_data)
+
+    # create the heatmap
+    axes = _create_heatmap(gradient_df, "Gradiente", group)
     return axes
 
 
@@ -660,6 +682,66 @@ def calculate_min(
         raise KeyError("Mismatched indices or columns in input DataFrames.") from e
 
     return min_data
+
+
+def calculate_gradient(
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+) -> pd.DataFrame:
+    """
+    Computes the gradient of change between successive DataFrames for Likert-scale data.
+
+    This function calculates the element-wise gradient of change between three
+    successive DataFrames, where the data represents responses on a Likert scale
+    (values ranging from 0 to 4). The gradient is computed as the difference between
+    consecutive DataFrames and averaged to obtain a single measure of change.
+
+    Args:
+        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple containing
+            exactly three DataFrames representing successive states of a dataset.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the averaged gradient of change,
+        with the same structure as the input DataFrames.
+
+    Raises:
+        ValueError: If the input tuple does not contain exactly three DataFrames.
+
+    Notes:
+        - Since the input data represents Likert-scale responses (0 to 4), the gradient
+          values will always range from -2 to 2:
+            - The minimum possible gradient (-2) occurs when a response decreases by 2 points
+              in consecutive steps (e.g., from 4 → 2 → 0).
+            - The maximum possible gradient (2) occurs when a response increases by 2 points
+              in consecutive steps (e.g., from 0 → 2 → 4).
+            - A gradient of 0 indicates no overall change in the response trend.
+        - The gradient is computed as:
+          1. The difference between the second and first DataFrame (`data[1] - data[0]`).
+          2. The difference between the third and second DataFrame (`data[2] - data[1]`).
+          3. The final gradient is the mean of these two differences.
+        - This approach smooths the changes over time, reducing noise in individual step differences.
+
+    Example:
+        >>> df1 = pd.DataFrame({"A": [1, 2, 3], "B": [4, 3, 2]})
+        >>> df2 = pd.DataFrame({"A": [2, 3, 4], "B": [3, 2, 1]})
+        >>> df3 = pd.DataFrame({"A": [3, 4, 4], "B": [2, 1, 0]})
+        >>> calculate_gradient((df1, df2, df3))
+             A    B
+        0  1.0 -1.0
+        1  1.0 -1.0
+        2  0.5 -1.0
+
+    """
+    if len(data) != 3:
+        raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
+
+    # calculate the gradeint as the diference between succesive values
+    gradient_df1_df2 = data[1] - data[0]  # Difference between df2 y df1
+    gradient_df2_df3 = data[2] - data[1]  # Difference between df3 y df2
+
+    # Para obtener un único gradiente de cambio, se puede tomar la media de los dos gradientes calculados
+    # Nota: Otras medidas agregadas también podrían ser relevantes dependiendo del contexto, como mediana o incluso sumar los valores absolutos de los gradientes.
+    mean_gradient = (gradient_df1_df2 + gradient_df2_df3) / 2
+    return mean_gradient
 
 
 def likert_counts(
