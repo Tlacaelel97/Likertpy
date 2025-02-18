@@ -1,5 +1,5 @@
 """
-Plot Likert-style data from Pandas using Matplotlib
+Plot Likert-style data and Heatmaps from Pandas using Matplotlib
 
 Initially based on code from Austin Cory Bart
 https://stackoverflow.com/a/41384812
