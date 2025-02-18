@@ -17,6 +17,7 @@ default_msas: Colors = [
     "firebrick",
 ]
 
+
 default: Colors = [
     TRANSPARENT,
     "firebrick",

@@ -1,5 +1,5 @@
 """
-Plot Likert-style data from Pandas using Matplotlib
+Plot Likert-style data and Heatmaps from Pandas using Matplotlib
 
 Initially based on code from Austin Cory Bart
 https://stackoverflow.com/a/41384812
@@ -34,6 +34,7 @@ except RuntimeError as err:
 from Likertpy import Scale
 import Likertpy.colors as builtin_colors
 from Likertpy import Interval
+from Likertpy.leer_datos import CleanData
 
 HIDE_EXCESSIVE_TICK_LABELS = True
 PADDING_LEFT = 0.02  # fraction of the total width to use as padding
@@ -329,16 +330,16 @@ def plot_likert(
     # Set xlabel
     if counts_are_percentages:
         xlabels = [str(label) + "%" if label != "" else "" for label in xlabels]
-        axes.set_xlabel("Porcentaje de Respuestas")
+        axes.set_xlabel("Porcentaje de Respuestas", fontsize=20)
     else:
-        axes.set_xlabel("Número de Respuestas")
+        axes.set_xlabel("Número de Respuestas", fontsize=20)
 
     axes.set_xticks(xvalues)
     axes.set_xticklabels(xlabels)
 
     # Reposition the legend if present
     if axes.get_legend():
-        axes.legend(bbox_to_anchor=(1.05, 1))
+        axes.legend(bbox_to_anchor=(1.05, 1), title="Escala de Respuestas")
 
     # Adjust padding
     counts_sum = counts.sum(axis="columns").max()
@@ -356,9 +357,391 @@ def plot_likert(
         )
 
     # Add name
-    axes.set_title("MSAS")
+    axes.set_title("MSAS", fontsize=30)
     plt.show()
     return axes
+
+
+def plot_mode(
+    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    """
+    Generates a heatmap representing the mode of survey responses for a given group.
+
+    This function processes the provided survey data by:
+    - Cleaning and structuring the data for heatmap visualization.
+    - Computing the mode of responses across three survey iterations.
+    - Converting the data to float format for proper visualization.
+    - Creating and displaying a heatmap using `matplotlib`.
+
+    Args:
+        df (Union[pd.DataFrame, pd.Series]): The survey data containing responses.
+        group (str): The group identifier to filter and process the data.
+        **kwargs: Additional keyword arguments for future customization.
+
+    Returns:
+        matplotlib.axes.Axes: The axes object of the generated heatmap.
+
+    Raises:
+        ValueError: If `df` is empty or not a valid DataFrame/Series.
+        TypeError: If `group` is not a string.
+        KeyError: If the required group is not found in the dataset.
+    """
+
+    # Validate input types
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
+    if df.empty:
+        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(group, str):
+        raise TypeError("The 'group' argument must be a string.")
+
+    # Clean and parse data
+    heathmap_data = _configure_data_for_heatmap(df, group)
+
+    # calculate mode
+    mode_df = calculate_mode(heathmap_data)
+
+    # change dtype to float
+    mode_df = mode_df.astype(float)
+
+    # Create the heatmap
+    axes = _create_heatmap(mode_df, "Moda", group)
+    return axes
+
+
+def plot_max(
+    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    """
+    Plots a heatmap of the maximum values across three cleaned DataFrames.
+
+    This function cleans the input survey data, calculates the element-wise maximum
+    across three DataFrames, and then generates a heatmap visualization. The heatmap
+    displays the maximum value at each position across the three DataFrames.
+
+    Args:
+        df (Union[pd.DataFrame, pd.Series]): The input DataFrame or Series containing
+            the survey data.
+        group (str): The group identifier (e.g., "G1", "G2", "G3") to filter the data
+            for the specific survey group.
+        **kwargs: Additional keyword arguments passed to the heatmap plotting function.
+
+    Returns:
+        matplotlib.axes.Axes: The axes object for the generated heatmap.
+
+    Raises:
+        ValueError: If the `df` argument is neither a pandas DataFrame nor a Series,
+            or if the provided dataset is empty.
+        TypeError: If the `group` argument is not a string.
+
+    Example:
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> plot_max(df, group="G1")
+    """
+    # Validate input types
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
+    if df.empty:
+        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(group, str):
+        raise TypeError("The 'group' argument must be a string.")
+
+    # Clean and parse data
+    heathmap_data = _configure_data_for_heatmap(df, group)
+
+    # calculate maximum
+    max_df = calculate_max(heathmap_data)
+
+    # change dtype to float
+    max_df = max_df.astype(float)
+
+    # Create the heatmap
+    axes = _create_heatmap(max_df, "Máximo", group)
+    return axes
+
+
+def plot_min(
+    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    """
+    Generates a heatmap representing the minimum values across multiple datasets.
+
+    This function processes the given DataFrame or Series, extracts relevant data for
+    heatmap visualization, computes the element-wise minimum across datasets, and
+    plots the resulting heatmap.
+
+    Args:
+        df (Union[pd.DataFrame, pd.Series]): A pandas DataFrame or Series containing
+            the data to be analyzed.
+        group (str): The name of the group (e.g., "G1", "G2", "G3") used to filter and preprocess the data.
+        **kwargs: Additional keyword arguments for potential customization.
+
+    Returns:
+        matplotlib.axes.Axes: The matplotlib Axes object containing the heatmap.
+
+    Raises:
+        ValueError: If `df` is not a DataFrame or Series, or if it is empty.
+        TypeError: If `group` is not a string.
+
+    Notes:
+        - The function internally cleans and transposes the data before computing the minimum.
+        - The minimum is calculated across three preprocessed datasets.
+        - The resulting values are converted to `float` to ensure consistency in visualization.
+        - Uses a predefined color scheme (`coolwarm`) for heatmap generation.
+    """
+    # Validate input types
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
+    if df.empty:
+        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(group, str):
+        raise TypeError("The 'group' argument must be a string.")
+
+    # Clean and parse data
+    heathmap_data = _configure_data_for_heatmap(df, group)
+
+    # calculate minimum
+    min_df = calculate_min(heathmap_data)
+
+    # change dtype to float
+    min_df = min_df.astype(float)
+
+    # Create the heatmap
+    axes = _create_heatmap(min_df, "Mínimo", group)
+    return axes
+
+
+def plot_gradient(
+    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    # Validate input types
+    if not isinstance(df, (pd.DataFrame, pd.Series)):
+        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
+    if df.empty:
+        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(group, str):
+        raise TypeError("The 'group' argument must be a string.")
+
+    # Clean and parse data
+    heathmap_data = _configure_data_for_heatmap(df, group)
+
+    # calculate gradient
+    gradient_df = calculate_gradient(heathmap_data)
+
+    # create the heatmap
+    axes = _create_heatmap(gradient_df, "Gradiente", group)
+    return axes
+
+
+def calculate_mode(
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+) -> pd.DataFrame:
+    """
+    Computes the mode for each corresponding cell across three DataFrames.
+
+    This function calculates the mode (most frequently occurring value) for each
+    cell position across three given DataFrames. If multiple values share the highest
+    frequency, the first occurring mode is selected. If no mode exists (i.e., all values
+    are unique), NaN is assigned.
+
+    Args:
+        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple containing
+            three DataFrames with identical structures (indices and columns).
+
+    Returns:
+        pd.DataFrame: A DataFrame with the same structure as the input DataFrames, where
+        each cell contains the mode of the corresponding values from the three DataFrames.
+
+    Raises:
+        KeyError: If any of the DataFrames do not contain the expected indices or columns.
+        IndexError: If there is no mode (i.e., all values are unique), resulting in an empty mode series.
+
+    Notes:
+        - Assumes that all input DataFrames have identical indices and columns.
+        - Handles numerical and categorical data.
+        - Uses `pandas.Series.mode()` to compute the most frequent value.
+        - If no mode is found, the function assigns NaN to the corresponding cell.
+
+    Example:
+        >>> df1 = pd.DataFrame({"A": [1, 2, 2], "B": [3, 4, 4]})
+        >>> df2 = pd.DataFrame({"A": [1, 3, 2], "B": [3, 5, 4]})
+        >>> df3 = pd.DataFrame({"A": [1, 2, 3], "B": [3, 4, 6]})
+        >>> calculate_mode((df1, df2, df3))
+           A    B
+        0  1.0  3.0
+        1  NaN  4.0
+        2  2.0  4.0
+    """
+    # Preparar un DataFrame vacío para almacenar los resultados
+    mode_df = pd.DataFrame(index=data[0].index, columns=data[0].columns)
+
+    # Calcular la moda para cada posición
+    for col in data[0].columns:
+        for idx in data[0].index:
+            try:
+                # Verificar que las claves existen en los DataFrames antes de acceder
+                values = [
+                    data[0].at[idx, col],
+                    data[1].at[idx, col],
+                    data[2].at[idx, col],
+                ]
+            except KeyError as e:
+                raise KeyError(
+                    f"Missing index '{idx}' or column '{col}' in one of the input DataFrames"
+                ) from e
+
+            # Calcular la moda de estos valores
+            mode_value = pd.Series(values).mode()
+
+            try:
+                # Almacenar el primer valor de moda en el DataFrame (en caso de múltiples modas)
+                mode_df.at[idx, col] = mode_value.iloc[0]
+            except IndexError:
+                # Si no hay moda (todos los valores son únicos), asignar NaN
+                mode_df.at[idx, col] = np.nan
+
+    return mode_df
+
+
+def calculate_max(
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+) -> pd.DataFrame:
+    """
+    Calculates the element-wise maximum across three DataFrames.
+
+    This function computes the maximum value for each corresponding cell position
+    across three given DataFrames. The result is a DataFrame where each cell contains
+    the maximum value of the corresponding cells from the three input DataFrames.
+
+    Args:
+        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple containing three
+            DataFrames with identical structures (indices and columns).
+
+    Returns:
+        pd.DataFrame: A DataFrame with the same structure as the input DataFrames, where
+        each cell contains the maximum value of the corresponding cells from the three DataFrames.
+
+    Example:
+        >>> df1 = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df2 = pd.DataFrame({"A": [3, 2, 1], "B": [6, 5, 4]})
+        >>> df3 = pd.DataFrame({"A": [2, 4, 3], "B": [5, 6, 7]})
+        >>> calculate_max((df1, df2, df3))
+           A  B
+        0  3  6
+        1  4  6
+        2  3  7
+    """
+    if len(data) != 3:
+        raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
+    max_data = pd.DataFrame(
+        np.maximum(np.maximum(data[0], data[1]), data[2]), columns=data[2].columns
+    )
+    return max_data
+
+
+def calculate_min(
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+) -> pd.DataFrame:
+    """
+    Computes the element-wise minimum across three DataFrames.
+
+    This function takes a tuple containing three pandas DataFrames and returns a new
+    DataFrame where each cell contains the minimum value from the corresponding
+    cells of the three input DataFrames.
+
+    Args:
+        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple of three
+            DataFrames with identical structure (same indices and columns).
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the element-wise minimum values.
+
+    Raises:
+        ValueError: If the input tuple does not contain exactly three DataFrames.
+        KeyError: If the DataFrames have misaligned indices or columns.
+
+    Example:
+        >>> df1 = pd.DataFrame({"A": [1, 5, 3], "B": [4, 2, 6]})
+        >>> df2 = pd.DataFrame({"A": [2, 3, 1], "B": [5, 1, 7]})
+        >>> df3 = pd.DataFrame({"A": [3, 4, 2], "B": [6, 0, 8]})
+        >>> calculate_min((df1, df2, df3))
+           A  B
+        0  1  4
+        1  3  0
+        2  1  6
+    """
+    if len(data) != 3:
+        raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
+
+    try:
+        min_data = pd.DataFrame(
+            np.minimum(np.minimum(data[0], data[1]), data[2]), columns=data[2].columns
+        )
+    except KeyError as e:
+        raise KeyError("Mismatched indices or columns in input DataFrames.") from e
+
+    return min_data
+
+
+def calculate_gradient(
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+) -> pd.DataFrame:
+    """
+    Computes the gradient of change between successive DataFrames for Likert-scale data.
+
+    This function calculates the element-wise gradient of change between three
+    successive DataFrames, where the data represents responses on a Likert scale
+    (values ranging from 0 to 4). The gradient is computed as the difference between
+    consecutive DataFrames and averaged to obtain a single measure of change.
+
+    Args:
+        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple containing
+            exactly three DataFrames representing successive states of a dataset.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the averaged gradient of change,
+        with the same structure as the input DataFrames.
+
+    Raises:
+        ValueError: If the input tuple does not contain exactly three DataFrames.
+
+    Notes:
+        - Since the input data represents Likert-scale responses (0 to 4), the gradient
+          values will always range from -2 to 2:
+            - The minimum possible gradient (-2) occurs when a response decreases by 2 points
+              in consecutive steps (e.g., from 4 → 2 → 0).
+            - The maximum possible gradient (2) occurs when a response increases by 2 points
+              in consecutive steps (e.g., from 0 → 2 → 4).
+            - A gradient of 0 indicates no overall change in the response trend.
+        - The gradient is computed as:
+          1. The difference between the second and first DataFrame (`data[1] - data[0]`).
+          2. The difference between the third and second DataFrame (`data[2] - data[1]`).
+          3. The final gradient is the mean of these two differences.
+        - This approach smooths the changes over time, reducing noise in individual step differences.
+
+    Example:
+        >>> df1 = pd.DataFrame({"A": [1, 2, 3], "B": [4, 3, 2]})
+        >>> df2 = pd.DataFrame({"A": [2, 3, 4], "B": [3, 2, 1]})
+        >>> df3 = pd.DataFrame({"A": [3, 4, 4], "B": [2, 1, 0]})
+        >>> calculate_gradient((df1, df2, df3))
+             A    B
+        0  1.0 -1.0
+        1  1.0 -1.0
+        2  0.5 -1.0
+
+    """
+    if len(data) != 3:
+        raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
+
+    # calculate the gradeint as the diference between succesive values
+    gradient_df1_df2 = data[1] - data[0]  # Difference between df2 y df1
+    gradient_df2_df3 = data[2] - data[1]  # Difference between df3 y df2
+
+    # Para obtener un único gradiente de cambio, se puede tomar la media de los dos gradientes calculados
+    # Nota: Otras medidas agregadas también podrían ser relevantes dependiendo del contexto, como mediana o incluso sumar los valores absolutos de los gradientes.
+    mean_gradient = (gradient_df1_df2 + gradient_df2_df3) / 2
+    return mean_gradient
 
 
 def likert_counts(
@@ -472,3 +855,127 @@ def raw_scale(df: pd.DataFrame) -> pd.DataFrame:
     df_m = df.melt()
     scale = df_m["value"].drop_duplicates()
     return scale
+
+
+def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
+    """
+    Prepares and structures survey data for heatmap visualization.
+
+    This function processes survey data by:
+    - Cleaning and filtering responses for a specified group (`group`) across three survey iterations (0, 1, 2).
+    - Resetting the index of each cleaned dataset for consistency.
+    - Transposing the cleaned data to facilitate heatmap generation.
+
+    Args:
+        df (pd.DataFrame): The raw survey dataset containing responses for multiple groups.
+        group (str): The group identifier (e.g., "G1", "G2", etc.) used to filter relevant survey questions.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        A tuple containing three transposed DataFrames, each representing a survey iteration (0, 1, 2).
+
+    Raises:
+        ValueError: If the specified group is not found in the dataset.
+        KeyError: If required columns for the survey responses are missing.
+
+    Notes:
+        - The `CleanData` class is used to clean the data without replacing numerical responses.
+        - The transposed format is useful for heatmap visualizations, where questions are typically placed as rows.
+
+    """
+    # Verify data
+    valid_groups = {"G1", "G2", "G3"}  # Se debe actualizar según corresponda
+    if group not in valid_groups:
+        raise ValueError(f"Invalid group '{group}'. Expected one of {valid_groups}.")
+
+    try:
+        # Data cleaning
+        data_cleaned_1 = CleanData(
+            df, group=group, survey_number=0, replace_numerical_data=False
+        ).clean_data()
+        data_cleaned_2 = CleanData(
+            df, group=group, survey_number=1, replace_numerical_data=False
+        ).clean_data()
+        data_cleaned_3 = CleanData(
+            df, group=group, survey_number=2, replace_numerical_data=False
+        ).clean_data()
+
+    except KeyError as e:
+        raise KeyError(f"Column access error while processing group '{group}': {e}")
+
+    except ValueError as e:
+        raise ValueError(f"Error while cleaning data for group '{group}': {e}")
+
+    # Verufy that DataFrames are not emptys after cleaning
+    if data_cleaned_1.empty or data_cleaned_2.empty or data_cleaned_3.empty:
+        raise ValueError(
+            f"Cleaned data for group '{group}' is empty. Check the dataset."
+        )
+
+    try:
+        # Reset index
+        data_cleaned_1 = data_cleaned_1.reset_index(drop=True)
+        data_cleaned_2 = data_cleaned_2.reset_index(drop=True)
+        data_cleaned_3 = data_cleaned_3.reset_index(drop=True)
+
+        # Transpose data
+        data_transpose_1 = data_cleaned_1.transpose()
+        data_transpose_2 = data_cleaned_2.transpose()
+        data_transpose_3 = data_cleaned_3.transpose()
+
+    except KeyError as e:
+        raise KeyError(f"Unexpected KeyError while restructuring data: {e}")
+
+    return data_transpose_1, data_transpose_2, data_transpose_3
+
+
+def _create_heatmap(
+    data: pd.DataFrame, type: str, group: str, **kwargs
+) -> matplotlib.axes.Axes:
+    """
+    Generates a heatmap to visualize survey data distributions.
+
+    This function creates a heatmap using `matplotlib` to display the values of a given
+    DataFrame, using a color gradient to represent variations in the data.
+
+    Args:
+        data (pd.DataFrame): The DataFrame containing the numerical values to be plotted.
+        type (str): The type or category of the heatmap, must be "Moda", "Maximo", "Minimo", Gradiente.
+        group (str): The group identifier to be included in the plot title.
+        **kwargs: Additional keyword arguments for future customization.
+
+    Returns:
+        matplotlib.axes.Axes: The axes object of the generated heatmap.
+
+    Raises:
+        ValueError: If `data` is empty or not a valid DataFrame.
+        TypeError: If `type` or `group` are not strings.
+    """
+    # Validate input types
+    if not isinstance(data, pd.DataFrame):
+        raise ValueError("The 'data' argument must be a pandas DataFrame.")
+    if data.empty:
+        raise ValueError("The provided DataFrame is empty. Cannot generate heatmap.")
+    if not isinstance(type, str) or not isinstance(group, str):
+        raise TypeError("The 'type' and 'group' arguments must be strings.")
+
+    # initialize plot
+    fig = plt.figure(figsize=(15, 9))
+    axes = fig.gca()
+
+    # plot mode
+    im = axes.imshow(data, cmap="coolwarm", aspect="auto")
+
+    # Add colorbar
+    fig.colorbar(im, ax=axes)
+
+    # Add titles and labels
+    axes.set_yticks(range(len(data.index)))
+    axes.set_yticklabels(data.index)
+    axes.set_title(f"{type} {group}", y=1.08, fontsize=30)
+    axes.set_ylabel("Preguntas", fontsize=15)
+    axes.set_xlabel("Pacientes", fontsize=15)
+
+    plt.show()
+
+    return axes

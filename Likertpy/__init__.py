@@ -5,6 +5,10 @@ from .interval import Interval
 import Likertpy.plot as __internal__
 from .plot import (
     plot_likert,
+    plot_mode,
+    plot_max,
+    plot_min,
+    plot_gradient,
     likert_counts,
     likert_percentages,
     likert_response,
