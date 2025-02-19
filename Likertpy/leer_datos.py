@@ -6,16 +6,37 @@ import Likertpy.scales
 
 class FileRead:
     """
-    Read files and transform into pandas.DataFrame
+    A utility class for reading data files and converting them into a pandas DataFrame.
 
-    Attributes:
-        lib (str) -- Name of the data folder
-        file (str) -- Name of the data file
-        path (Path) -- Path of the file that will be converted to pandas.DataFrame
-        readers (dict) -- Different pandas file read methods
-        file_extension (str) -- Identifyer of the file's extension
+    This class supports reading files of various formats, including CSV, Excel, JSON, 
+    and Parquet, by automatically detecting the file extension and using the appropriate 
+    pandas reading method.
+
+    Attributes
+    ----------
+    folder : str
+        Name of the directory containing the data file.
+    file : str
+        Name of the data file to be read.
+    readers : dict
+        A mapping of supported file extensions to corresponding pandas read functions.
+    file_extension : str
+        The file extension (e.g., ".csv", ".xlsx", ".json" or ".parquet"), used to determine the appropriate reader method.
+
+    Methods
+    -------
+    read_file_to_dataframe() -> pd.DataFrame
+        Reads the specified file and returns its contents as a pandas DataFrame.
+    _crear_path() -> Path
+        Constructs and returns the full path of the file.
+    
+    Raises
+    ------
+    ValueError
+        If the file extension is not supported.
+    RuntimeError
+        If an error occurs while reading the file.
     """
-
     def __init__(self, folder: str, file: str):
         self.folder = folder
         self.file = file
@@ -57,6 +78,31 @@ class FileRead:
             raise RuntimeError(f"Error al leer el archivo '{self.file_path}': {e}")
 
     def _crear_path(self) -> Path:
+        """
+        Creates and returns a `Path` object by combining the directory and file name.
+
+        This function uses the `Path` class from the `pathlib` module to construct 
+        the full path of a file within a specified directory. If an error occurs while 
+        creating the `Path`, it is caught and the original exception is re-raised.
+
+        Returns
+        -------
+        Path
+            A `Path` object representing the full file path.
+
+        Raises
+        ------
+        Exception
+            If an error occurs while creating the `Path`, an error message is printed, 
+            and the original exception is re-raised.
+
+        Notes
+        -----
+        - The function assumes that `self.folder` and `self.file` are correctly defined 
+        as class attributes.
+        - It is recommended to handle the exception at a higher level to avoid unexpected 
+        program interruptions.
+        """
         try:
             return Path(self.folder, self.file)
         except Exception as err:

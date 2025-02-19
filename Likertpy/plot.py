@@ -50,7 +50,24 @@ class PlotLikertError(ValueError):
 
 
 class ConfigurePlot:
+    """
+    Handles the layout and configuration of Likert-scale survey plots.
 
+    This class provides utility functions for centering response data, adjusting x-axis labels,
+    and formatting bar labels in a stacked horizontal bar chart. It ensures that responses
+    are visually aligned around a neutral point, and optimizes the plot for readability.
+
+    Methods
+    -------
+    _configure_rows(scale, counts)
+        Centers response counts around the neutral category and pads rows for balanced visualization.
+    
+    _set_x_labels(padded_counts, xtick_interval, axes, center, counts)
+        Computes and applies x-axis labels, ensuring even distribution and visibility constraints.
+    
+    _set_bar_labels(axes, compute_percentages, counts_sum, bar_labels_color, scale)
+        Configures and applies labels to bar segments while ensuring readability based on bar size.
+    """
     def __init__(self):
         pass
 
@@ -777,10 +794,45 @@ def likert_counts(
     drop_zeros=False,
 ) -> pd.DataFrame:
     """
-    Given a dataframe of Likert-style responses, returns a count of each response,
-    validating them against the provided scale.
-    """
+    Computes the count of each response category in a Likert-style dataset.
 
+    This function validates the responses against the provided Likert scale, counts the occurrences 
+    of each response, and reformats long question labels for improved readability in plots.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame or pandas.Series
+        A dataset containing Likert-style responses. Column names represent questions, and 
+        cell values represent the responses.
+    scale : list
+        The Likert scale used for validation. This should be a list of possible response values, 
+        ordered from the lowest to the highest.
+    label_max_width : int, optional (default=30)
+        The maximum character width for question labels before wrapping text for better 
+        readability in visualizations.
+    drop_zeros : bool, optional (default=False)
+        If True, drops columns where the response count is zero (e.g., removing "0" values 
+        if the scale includes it).
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame where rows represent questions and columns correspond to the response 
+        categories in the given Likert scale, containing the count of each response.
+
+    Raises
+    ------
+    PlotLikertError
+        If a response in the dataset does not match any value in the provided Likert scale, 
+        indicating potential issues such as extra whitespace, incorrect capitalization, 
+        or mismatched data types (e.g., int vs. str).
+
+    Notes
+    -----
+    - The function ensures compatibility with different versions of Pandas (e.g., handling `.map()` vs. `.applymap()`).
+    - It replaces long question labels with wrapped versions for better visualization.
+    - It correctly aligns the response counts to match the order of the given Likert scale.
+    """
     if type(df) == pd.core.series.Series:
         df = df.to_frame()
 
