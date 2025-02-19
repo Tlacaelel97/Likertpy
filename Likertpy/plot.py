@@ -242,6 +242,8 @@ class ConfigurePlot:
 
 def plot_likert(
     df: typing.Union[pd.DataFrame, pd.Series],
+    group: str,
+    survey_number: int,
     plot_scale: Scale,
     format_scale: Scale = None,
     colors: builtin_colors.Colors = builtin_colors.default_msas,
@@ -251,49 +253,73 @@ def plot_likert(
     xtick_interval: typing.Optional[int] = None,
     compute_percentages: bool = False,
     bar_labels: bool = False,
+    clean_data: bool = True,
     bar_labels_color: typing.Union[str, typing.List[str]] = "white",
     **kwargs,
 ) -> matplotlib.axes.Axes:
     """
-    Plot the given Likert-type dataset.
+    Generates a horizontal bar chart to visualize Likert-scale survey responses.
+
+    This function processes Likert-type survey data and creates a stacked horizontal 
+    bar chart representing the distribution of responses. It supports various customization 
+    options, including different response scales, color schemes, data formatting, and display 
+    adjustments.
 
     Parameters
     ----------
     df : pandas.DataFrame or pandas.Series
-        A dataframe with questions in column names and answers recorded as cell values.
+        A DataFrame with survey questions as column names and Likert-scale responses 
+        (typically 0-4 or 1-5) as cell values.
+    group : str
+        The column name indicating the group to which the responses belong.
+    survey_number : int
+        The identifier for the survey iteration or dataset version being analyzed.
     plot_scale : list
-        The scale used for the actual plot: a list of strings in order for answer options.
-    format_scale : list of str
-        Optional scale used to reformat the responses: \
-        if your responses are numeric values, you can pass in this scale to replace them with text. \
-        If your dataset has NA values, this list must have a corresponding 0/empty value at the beginning.
-    colors : list of str
-        A list of colors in hex string or RGB tuples to use for plotting. Attention: if your \
-        colormap doesn't work right try appending transparent ("#ffffff00") in the first place.
-    label_max_width : int
-        The character wrap length of the y-axis labels.
-    drop_zeros : bool
-        Indicates whether the data have NA values that should be dropped (True) or not (False).
-    figsize : tuple of (int, int)
-        A tuple (width, heigth) that controls size of the final figure - \
-        similarly to matplotlib
-    xtick_interval : int
-        Controls the interval between x-axis ticks.
-    compute_percentages : bool, default = True,
-        Convert the given response counts to percentages and display the counts as percentages in the plot.
+        The scale used for the actual plot: a list of strings representing Likert-scale 
+        answer options in the correct order.
+    format_scale : list of str, optional
+        An optional list defining how response values should be formatted. If responses are 
+        numeric, this can replace them with text labels. If NA values exist, the list should 
+        start with a corresponding empty or zero value.
+    colors : list of str, default = builtin_colors.default_msas
+        A list of colors (hex codes or RGB tuples) for plotting. If colors do not render 
+        correctly, consider appending a transparent color (`"#ffffff00"`) at the beginning.
+    label_max_width : int, default = 30
+        Maximum character width for wrapping question labels on the y-axis.
+    drop_zeros : bool, default = False
+        Whether to remove NA values from the dataset before plotting.
+    figsize : tuple (int, int), optional
+        A tuple `(width, height)` controlling the size of the final figure.
+    xtick_interval : int, optional
+        Interval between x-axis tick labels.
+    compute_percentages : bool, default = False
+        Whether to convert response counts into percentages before plotting.
     bar_labels : bool, default = False
-        Show a label with the value of each bar segment on top of it
-    bar_labels_color : str or list of str = "white",
-        If showing bar labels, use this color (or colors) for the text
+        Whether to display numerical labels inside the bar segments.
+    clean_data : bool, default = True
+        Whether to preprocess and clean the dataset before plotting.
+    bar_labels_color : str or list of str, default = "white"
+        Color(s) for the bar segment labels if `bar_labels=True`.
     **kwargs
-        Options to pass to pandas plotting method.
+        Additional keyword arguments passed to the pandas plotting function.
 
     Returns
     -------
     matplotlib.axes.Axes
-        Likert plot
+        A matplotlib Axes object containing the Likert-scale plot.
+
+    Notes
+    -----
+    - If `format_scale` is provided, response values will be reformatted accordingly.
+    - If `compute_percentages=True`, counts will be normalized and displayed as percentages.
+    - A vertical dashed line is drawn at the center to highlight neutral responses.
+    - The legend automatically adjusts based on the provided scale.
+    - Padding adjustments are applied to optimize spacing for visual clarity.
     """
     conf_plot = ConfigurePlot()
+
+    if clean_data:
+        df = CleanData(df, group=group, survey_number=survey_number).clean_data()
 
     if format_scale:
         df_fixed = likert_response(df, format_scale)
