@@ -761,6 +761,8 @@ def calculate_gradient(
           1. The difference between the second and first DataFrame (`data[1] - data[0]`).
           2. The difference between the third and second DataFrame (`data[2] - data[1]`).
           3. The final gradient is the mean of these two differences.
+          4. To simplify the mathematical expresion, the mean gradient is calculated as
+             `(data[2] - data[0]) / 2`.This is equivalent to the previous step-by-step
         - This approach smooths the changes over time, reducing noise in individual step differences.
 
     Example:
@@ -777,13 +779,7 @@ def calculate_gradient(
     if len(data) != 3:
         raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
 
-    # calculate the gradeint as the diference between succesive values
-    # gradient_df1_df2 = data[1] - data[0]  # Difference between df2 y df1
-    # gradient_df2_df3 = data[2] - data[1]  # Difference between df3 y df2
-
-    # # Para obtener un único gradiente de cambio, se puede tomar la media de los dos gradientes calculados
-    # # Nota: Otras medidas agregadas también podrían ser relevantes dependiendo del contexto, como mediana o incluso sumar los valores absolutos de los gradientes.
-    # mean_gradient = (gradient_df1_df2 + gradient_df2_df3) / 2
+    # calculate the gradient as the mean of the differences between successive DataFrames
     mean_gradient = (data[2] - data[0])/2
     return mean_gradient
 
