@@ -10,7 +10,7 @@ AUTHOR_EMAIL = 'tlacaelel.developer@gmail.com'
 URL = 'https://github.com/Tlacaelel97' 
 
 LICENSE = 'MIT' #Tipo de licencia
-DESCRIPTION = 'Libreria para grafiacación de datos en escaka de Likert'
+DESCRIPTION = 'Libreria para grafiacación de datos en escala de Likert'
 LONG_DESCRIPTION = (HERE / "README.md").read_text(encoding='utf-8') #Referencia al documento README con una descripción más elaborada
 LONG_DESC_TYPE = "text/markdown"
 
