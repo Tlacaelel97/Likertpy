@@ -778,12 +778,13 @@ def calculate_gradient(
         raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
 
     # calculate the gradeint as the diference between succesive values
-    gradient_df1_df2 = data[1] - data[0]  # Difference between df2 y df1
-    gradient_df2_df3 = data[2] - data[1]  # Difference between df3 y df2
+    # gradient_df1_df2 = data[1] - data[0]  # Difference between df2 y df1
+    # gradient_df2_df3 = data[2] - data[1]  # Difference between df3 y df2
 
-    # Para obtener un único gradiente de cambio, se puede tomar la media de los dos gradientes calculados
-    # Nota: Otras medidas agregadas también podrían ser relevantes dependiendo del contexto, como mediana o incluso sumar los valores absolutos de los gradientes.
-    mean_gradient = (gradient_df1_df2 + gradient_df2_df3) / 2
+    # # Para obtener un único gradiente de cambio, se puede tomar la media de los dos gradientes calculados
+    # # Nota: Otras medidas agregadas también podrían ser relevantes dependiendo del contexto, como mediana o incluso sumar los valores absolutos de los gradientes.
+    # mean_gradient = (gradient_df1_df2 + gradient_df2_df3) / 2
+    mean_gradient = (data[2] - data[0])/2
     return mean_gradient
 
 

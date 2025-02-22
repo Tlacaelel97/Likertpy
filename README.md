@@ -59,5 +59,5 @@ Este proyecto está bajo la licencia MIT. Para más detalles, consulta el archiv
 
 ## Contacto
 
-Si tienes preguntas o sugerencias, por favor abre un issue en [GitHub](https://github.com/tuusuario/likertplot/issues) o contáctanos en correo@example.com.
+Si tienes preguntas o sugerencias, por favor abre un issue en [GitHub](https://github.com/Tlacaelel97/Likertpy/issues) o contáctanos en tlacaelel.flores@ramtechsolutions.com.mx
 
