@@ -32,17 +32,51 @@ df = data_reader.read_file_to_dataframe()
 
 ### Procesamiento y visualización
 
+#### Likert
+
 ```python
-# Configurar el gráfico
-plot_config = ConfigurePlot()
-adjusted_data, center, padded_data = plot_config._configure_rows(
-    scale=[1, 2, 3, 4, 5], counts=df
+# Configurar el gráfico indicando el grupo y la fase del estudio
+Likertpy.plot_likert(
+    data,
+    group="G1",
+    survey_number=0,
+    plot_scale=Likertpy.scales.msas_G1,
+    compute_percentages=True,
+    bar_labels=False,
 )
+```
+
+#### Moda
+
+```python
+# Configurar el gráfico indicando el grupo 
+Likertpy.plot_mode(data,group="G1")
+```
+
+#### Valor Máximo
+
+```python
+# Configurar el gráfico indicando el grupo 
+Likertpy.plot_max(data,group="G1")
+```
+
+#### Valor Mínimo
+
+```python
+# Configurar el gráfico indicando el grupo 
+Likertpy.plot_min(data,group="G1")
+```
+
+#### Gradiente de Cambio
+
+```python
+# Configurar el gráfico indicando el grupo 
+Likertpy.plot_gradient(data,group="G1")
 ```
 
 ## Documentación
 
-Para más detalles sobre las funciones y configuraciones disponibles, consulta la [documentación oficial](https://github.com/tuusuario/likertplot).
+Para más detalles sobre las funciones y configuraciones disponibles, consulta la [documentación oficial](https://github.com/Tlacaelel97/Likertpy).
 
 ## Contribuciones
 
