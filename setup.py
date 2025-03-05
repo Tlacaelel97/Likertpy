@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 HERE = pathlib.Path(__file__).parent
 
-VERSION = '1.0.0' 
+VERSION = '1.1.0' 
 PACKAGE_NAME = 'Likertpy' 
 AUTHOR = 'Tlacaelel Jaime Flores Villaseñor' 
 AUTHOR_EMAIL = 'tlacaelel.developer@gmail.com' 

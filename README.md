@@ -45,6 +45,7 @@ Likertpy.plot_likert(
     bar_labels=False,
 )
 ```
+Las funciones pueden recibir pd.DataFrame, pd.Series y str. Los primeros se da por hecho que los datos ya vienen preprocesados y con el formato requerido. pero en caso de que no sea asi, puede establecer el parámetro clean_data a True
 
 #### Moda
 

@@ -33,8 +33,7 @@ except RuntimeError as err:
 
 from Likertpy import Scale
 import Likertpy.colors as builtin_colors
-from Likertpy import Interval
-from Likertpy.leer_datos import CleanData
+from Likertpy import Interval, FileRead, cleanData
 
 HIDE_EXCESSIVE_TICK_LABELS = True
 PADDING_LEFT = 0.02  # fraction of the total width to use as padding
@@ -258,10 +257,9 @@ class ConfigurePlot:
 
 
 def plot_likert(
-    df: typing.Union[pd.DataFrame, pd.Series],
+    df: typing.Union[pd.DataFrame, pd.Series, str],
     group: str,
     survey_number: int,
-    plot_scale: Scale,
     format_scale: Scale = None,
     colors: builtin_colors.Colors = builtin_colors.default_msas,
     label_max_width: int = 30,
@@ -270,7 +268,7 @@ def plot_likert(
     xtick_interval: typing.Optional[int] = None,
     compute_percentages: bool = False,
     bar_labels: bool = False,
-    clean_data: bool = True,
+    clean_data: bool = False,
     bar_labels_color: typing.Union[str, typing.List[str]] = "white",
     **kwargs,
 ) -> matplotlib.axes.Axes:
@@ -333,15 +331,21 @@ def plot_likert(
     - The legend automatically adjusts based on the provided scale.
     - Padding adjustments are applied to optimize spacing for visual clarity.
     """
-    conf_plot = ConfigurePlot()
 
+    conf_plot = ConfigurePlot()
+    # If a string is passed, read the file
+    if isinstance(df, str):
+        data = FileRead(folder="IN", file=df).read_file_to_dataframe()
+        print(data.head())
+        df_cleaned,plot_scale = cleanData(data, group=group,file_name=df, survey_number=survey_number).clean_data()
+    # If needed, clean the data
     if clean_data:
-        df = CleanData(df, group=group, survey_number=survey_number).clean_data()
+        df_cleaned,plot_scale = cleanData(df, group=group, survey_number=survey_number).clean_data()
 
     if format_scale:
-        df_fixed = likert_response(df, format_scale)
+        df_fixed = likert_response(df_cleaned, format_scale)
     else:
-        df_fixed = df
+        df_fixed = df_cleaned
         format_scale = plot_scale
 
     counts = likert_counts(df_fixed, format_scale, label_max_width, drop_zeros)
@@ -965,13 +969,13 @@ def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
 
     try:
         # Data cleaning
-        data_cleaned_1 = CleanData(
+        data_cleaned_1 = cleanData(
             df, group=group, survey_number=0, replace_numerical_data=False
         ).clean_data()
-        data_cleaned_2 = CleanData(
+        data_cleaned_2 = cleanData(
             df, group=group, survey_number=1, replace_numerical_data=False
         ).clean_data()
-        data_cleaned_3 = CleanData(
+        data_cleaned_3 = cleanData(
             df, group=group, survey_number=2, replace_numerical_data=False
         ).clean_data()
 

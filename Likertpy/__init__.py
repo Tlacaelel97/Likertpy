@@ -1,6 +1,7 @@
 from .leer_datos import FileRead
 from .scales import Scale
 from .interval import Interval
+from .CleanData import cleanData
 
 import Likertpy.plot as __internal__
 from .plot import (
