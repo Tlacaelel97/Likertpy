@@ -31,9 +31,9 @@ except RuntimeError as err:
     )
     raise err
 
-from Likertpy import Scale
+from Likertpy.utils import select_survey_name
 import Likertpy.colors as builtin_colors
-from Likertpy import Interval, FileRead, cleanData
+from Likertpy import Interval, FileRead, cleanData, Scale
 
 HIDE_EXCESSIVE_TICK_LABELS = True
 PADDING_LEFT = 0.02  # fraction of the total width to use as padding
@@ -258,8 +258,8 @@ class ConfigurePlot:
 
 def plot_likert(
     df: typing.Union[pd.DataFrame, pd.Series, str],
-    group: str,
     survey_number: int,
+    group: str='',
     format_scale: Scale = None,
     colors: builtin_colors.Colors = builtin_colors.default_msas,
     label_max_width: int = 30,
@@ -404,7 +404,11 @@ def plot_likert(
         )
 
     # Add name
-    axes.set_title("MSAS", fontsize=30)
+    if isinstance(df, str):
+        plot_name = select_survey_name(df) #Select the survey name based on df, it only works for df = str
+    else:
+        plot_name = "Survey"
+    axes.set_title(plot_name.upper(), fontsize=30)
     plt.show()
     return axes
 
