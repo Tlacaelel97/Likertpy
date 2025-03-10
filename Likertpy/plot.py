@@ -47,7 +47,6 @@ BAR_LABEL_SIZE_CUTOFF = 0.05
 class PlotLikertError(ValueError):
     pass
 
-
 class ConfigurePlot:
     """
     Handles the layout and configuration of Likert-scale survey plots.
@@ -254,7 +253,6 @@ class ConfigurePlot:
                     continue
                 if number < bar_size_cutoff:
                     label.set_text("")
-
 
 def plot_likert(
     df: typing.Union[pd.DataFrame, pd.Series, str],

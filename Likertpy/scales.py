@@ -48,7 +48,13 @@ apca: Scale = [
     0,1,2,3,4,5
 ]
 
-
+pedsql: Scale = [
+    "Nunca",
+    "Casi Nunca",
+    "Algunas Veces",
+    "A Menudo",
+    "Casi Siempre",
+]
 
 agree5_0: Scale = [
     "0",
