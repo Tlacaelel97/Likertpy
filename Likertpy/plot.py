@@ -533,7 +533,7 @@ def plot_max(
 
 
 def plot_min(
-    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+    df: typing.Union[str, pd.DataFrame, pd.Series], group: str, **kwargs
 ) -> matplotlib.axes.Axes:
     """
     Generates a heatmap representing the minimum values across multiple datasets.
@@ -562,15 +562,18 @@ def plot_min(
         - Uses a predefined color scheme (`coolwarm`) for heatmap generation.
     """
     # Validate input types
-    if not isinstance(df, (pd.DataFrame, pd.Series)):
+    if not isinstance(df, (str, pd.DataFrame, pd.Series)):
         raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
-    if df.empty:
-        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if isinstance(df, (pd.DataFrame, pd.Series)):
+        if df.empty:
+            raise ValueError("The provided dataset is empty. Cannot compute mode.")
     if not isinstance(group, str):
         raise TypeError("The 'group' argument must be a string.")
 
+    if isinstance(df, str):
+        data = FileRead(folder="IN", file=df).read_file_to_dataframe()
     # Clean and parse data
-    heathmap_data = _configure_data_for_heatmap(df, group)
+    heathmap_data = _configure_data_for_heatmap(fileName=df, data=data, group=group)
 
     # calculate minimum
     min_df = calculate_min(heathmap_data)
@@ -579,7 +582,7 @@ def plot_min(
     min_df = min_df.astype(float)
 
     # Create the heatmap
-    axes = _create_heatmap(min_df, "Mínimo", group)
+    axes = _create_heatmap(min_df, "Mínimo", group, fileName=df)
     return axes
 
 
