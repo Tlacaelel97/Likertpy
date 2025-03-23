@@ -178,5 +178,4 @@ test.py
 *.ipynb
 IN/
 *.csv
-*
 # End of https://www.toptal.com/developers/gitignore/api/python

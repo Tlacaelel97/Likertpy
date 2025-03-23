@@ -56,6 +56,22 @@ pedsql: Scale = [
     "Casi Siempre",
 ]
 
+pedsql_2: Scale = [
+    "Nunca",
+    "Casi Nunca",
+    "Algunas Veces",
+    "A Menudo",
+    "Muchas Veces",
+]
+
+pedsql_5: Scale = [
+    "Nunca",
+    "Casi nunca",
+    "Algunas veces",
+    "Con frecuencia",
+    "Casi siempre",
+]
+
 agree5_0: Scale = [
     "0",
     "Strongly disagree",

@@ -31,7 +31,7 @@ except RuntimeError as err:
     )
     raise err
 
-from Likertpy.utils import select_survey_name
+from Likertpy.utils import *
 import Likertpy.colors as builtin_colors
 from Likertpy import Interval, FileRead, cleanData, Scale
 
@@ -47,6 +47,9 @@ BAR_LABEL_SIZE_CUTOFF = 0.05
 class PlotLikertError(ValueError):
     pass
 
+class HeatMapError(ValueError):
+    pass
+
 class ConfigurePlot:
     """
     Handles the layout and configuration of Likert-scale survey plots.
@@ -59,13 +62,14 @@ class ConfigurePlot:
     -------
     _configure_rows(scale, counts)
         Centers response counts around the neutral category and pads rows for balanced visualization.
-    
+
     _set_x_labels(padded_counts, xtick_interval, axes, center, counts)
         Computes and applies x-axis labels, ensuring even distribution and visibility constraints.
-    
+
     _set_bar_labels(axes, compute_percentages, counts_sum, bar_labels_color, scale)
         Configures and applies labels to bar segments while ensuring readability based on bar size.
     """
+
     def __init__(self):
         pass
 
@@ -254,10 +258,11 @@ class ConfigurePlot:
                 if number < bar_size_cutoff:
                     label.set_text("")
 
+
 def plot_likert(
     df: typing.Union[pd.DataFrame, pd.Series, str],
     survey_number: int,
-    group: str='',
+    group: str = "",
     format_scale: Scale = None,
     colors: builtin_colors.Colors = builtin_colors.default_msas,
     label_max_width: int = 30,
@@ -273,29 +278,29 @@ def plot_likert(
     """
     Generates a horizontal bar chart to visualize Likert-scale survey responses.
 
-    This function processes Likert-type survey data and creates a stacked horizontal 
-    bar chart representing the distribution of responses. It supports various customization 
-    options, including different response scales, color schemes, data formatting, and display 
+    This function processes Likert-type survey data and creates a stacked horizontal
+    bar chart representing the distribution of responses. It supports various customization
+    options, including different response scales, color schemes, data formatting, and display
     adjustments.
 
     Parameters
     ----------
     df : pandas.DataFrame or pandas.Series
-        A DataFrame with survey questions as column names and Likert-scale responses 
+        A DataFrame with survey questions as column names and Likert-scale responses
         (typically 0-4 or 1-5) as cell values.
     group : str
         The column name indicating the group to which the responses belong.
     survey_number : int
         The identifier for the survey iteration or dataset version being analyzed.
     plot_scale : list
-        The scale used for the actual plot: a list of strings representing Likert-scale 
+        The scale used for the actual plot: a list of strings representing Likert-scale
         answer options in the correct order.
     format_scale : list of str, optional
-        An optional list defining how response values should be formatted. If responses are 
-        numeric, this can replace them with text labels. If NA values exist, the list should 
+        An optional list defining how response values should be formatted. If responses are
+        numeric, this can replace them with text labels. If NA values exist, the list should
         start with a corresponding empty or zero value.
     colors : list of str, default = builtin_colors.default_msas
-        A list of colors (hex codes or RGB tuples) for plotting. If colors do not render 
+        A list of colors (hex codes or RGB tuples) for plotting. If colors do not render
         correctly, consider appending a transparent color (`"#ffffff00"`) at the beginning.
     label_max_width : int, default = 30
         Maximum character width for wrapping question labels on the y-axis.
@@ -334,11 +339,15 @@ def plot_likert(
     # If a string is passed, read the file
     if isinstance(df, str):
         data = FileRead(folder="IN", file=df).read_file_to_dataframe()
-        print(data.head())
-        df_cleaned,plot_scale = cleanData(data, group=group,file_name=df, survey_number=survey_number).clean_data()
+        # print(data.head())
+        df_cleaned, plot_scale = cleanData(
+            data, group=group, file_name=df, survey_number=survey_number
+        ).clean_data()
     # If needed, clean the data
     if clean_data:
-        df_cleaned,plot_scale = cleanData(df, group=group, survey_number=survey_number).clean_data()
+        df_cleaned, plot_scale = cleanData(
+            df, group=group, survey_number=survey_number
+        ).clean_data()
 
     if format_scale:
         df_fixed = likert_response(df_cleaned, format_scale)
@@ -403,7 +412,9 @@ def plot_likert(
 
     # Add name
     if isinstance(df, str):
-        plot_name = select_survey_name(df) #Select the survey name based on df, it only works for df = str
+        plot_name = select_survey_name(
+            df
+        )  # Select the survey name based on df, it only works for df = str
     else:
         plot_name = "Survey"
     axes.set_title(plot_name.upper(), fontsize=30)
@@ -412,7 +423,7 @@ def plot_likert(
 
 
 def plot_mode(
-    df: typing.Union[pd.DataFrame, pd.Series], group: str, **kwargs
+    df: typing.Union[str, pd.DataFrame, pd.Series], group: str = None, **kwargs
 ) -> matplotlib.axes.Axes:
     """
     Generates a heatmap representing the mode of survey responses for a given group.
@@ -438,15 +449,23 @@ def plot_mode(
     """
 
     # Validate input types
-    if not isinstance(df, (pd.DataFrame, pd.Series)):
-        raise ValueError("The 'df' argument must be a pandas DataFrame or Series.")
-    if df.empty:
-        raise ValueError("The provided dataset is empty. Cannot compute mode.")
+    if not isinstance(df, (str, pd.DataFrame, pd.Series)):
+        raise ValueError(
+            "The 'df' argument must be a pandas DataFrame or Path to File."
+        )
+    if isinstance(df, (pd.DataFrame, pd.Series)):
+        if df.empty:
+            raise ValueError("The provided dataset is empty. Cannot compute mode.")
     if not isinstance(group, str):
-        raise TypeError("The 'group' argument must be a string.")
+        if group is None and "apca" in df:
+            pass
+        else:
+            raise TypeError("The 'group' argument must be a string.")
 
+    if isinstance(df, str):
+        data = FileRead(folder="IN", file=df).read_file_to_dataframe()
     # Clean and parse data
-    heathmap_data = _configure_data_for_heatmap(df, group)
+    heathmap_data = _configure_data_for_heatmap(fileName=df, data=data, group=group)
 
     # calculate mode
     mode_df = calculate_mode(heathmap_data)
@@ -455,7 +474,7 @@ def plot_mode(
     mode_df = mode_df.astype(float)
 
     # Create the heatmap
-    axes = _create_heatmap(mode_df, "Moda", group)
+    axes = _create_heatmap(mode_df, "Moda", group, fileName=df)
     return axes
 
 
@@ -583,78 +602,8 @@ def plot_gradient(
     return axes
 
 
-def calculate_mode(
-    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
-) -> pd.DataFrame:
-    """
-    Computes the mode for each corresponding cell across three DataFrames.
-
-    This function calculates the mode (most frequently occurring value) for each
-    cell position across three given DataFrames. If multiple values share the highest
-    frequency, the first occurring mode is selected. If no mode exists (i.e., all values
-    are unique), NaN is assigned.
-
-    Args:
-        data (tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]): A tuple containing
-            three DataFrames with identical structures (indices and columns).
-
-    Returns:
-        pd.DataFrame: A DataFrame with the same structure as the input DataFrames, where
-        each cell contains the mode of the corresponding values from the three DataFrames.
-
-    Raises:
-        KeyError: If any of the DataFrames do not contain the expected indices or columns.
-        IndexError: If there is no mode (i.e., all values are unique), resulting in an empty mode series.
-
-    Notes:
-        - Assumes that all input DataFrames have identical indices and columns.
-        - Handles numerical and categorical data.
-        - Uses `pandas.Series.mode()` to compute the most frequent value.
-        - If no mode is found, the function assigns NaN to the corresponding cell.
-
-    Example:
-        >>> df1 = pd.DataFrame({"A": [1, 2, 2], "B": [3, 4, 4]})
-        >>> df2 = pd.DataFrame({"A": [1, 3, 2], "B": [3, 5, 4]})
-        >>> df3 = pd.DataFrame({"A": [1, 2, 3], "B": [3, 4, 6]})
-        >>> calculate_mode((df1, df2, df3))
-           A    B
-        0  1.0  3.0
-        1  NaN  4.0
-        2  2.0  4.0
-    """
-    # Preparar un DataFrame vacío para almacenar los resultados
-    mode_df = pd.DataFrame(index=data[0].index, columns=data[0].columns)
-
-    # Calcular la moda para cada posición
-    for col in data[0].columns:
-        for idx in data[0].index:
-            try:
-                # Verificar que las claves existen en los DataFrames antes de acceder
-                values = [
-                    data[0].at[idx, col],
-                    data[1].at[idx, col],
-                    data[2].at[idx, col],
-                ]
-            except KeyError as e:
-                raise KeyError(
-                    f"Missing index '{idx}' or column '{col}' in one of the input DataFrames"
-                ) from e
-
-            # Calcular la moda de estos valores
-            mode_value = pd.Series(values).mode()
-
-            try:
-                # Almacenar el primer valor de moda en el DataFrame (en caso de múltiples modas)
-                mode_df.at[idx, col] = mode_value.iloc[0]
-            except IndexError:
-                # Si no hay moda (todos los valores son únicos), asignar NaN
-                mode_df.at[idx, col] = np.nan
-
-    return mode_df
-
-
 def calculate_max(
-    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame],
 ) -> pd.DataFrame:
     """
     Calculates the element-wise maximum across three DataFrames.
@@ -690,7 +639,7 @@ def calculate_max(
 
 
 def calculate_min(
-    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame],
 ) -> pd.DataFrame:
     """
     Computes the element-wise minimum across three DataFrames.
@@ -734,7 +683,7 @@ def calculate_min(
 
 
 def calculate_gradient(
-    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+    data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame],
 ) -> pd.DataFrame:
     """
     Computes the gradient of change between successive DataFrames for Likert-scale data.
@@ -786,7 +735,7 @@ def calculate_gradient(
         raise ValueError("The 'data' tuple must contain exactly three DataFrames.")
 
     # calculate the gradient as the mean of the differences between successive DataFrames
-    mean_gradient = (data[2] - data[0])/2
+    mean_gradient = (data[2] - data[0]) / 2
     return mean_gradient
 
 
@@ -799,35 +748,35 @@ def likert_counts(
     """
     Computes the count of each response category in a Likert-style dataset.
 
-    This function validates the responses against the provided Likert scale, counts the occurrences 
+    This function validates the responses against the provided Likert scale, counts the occurrences
     of each response, and reformats long question labels for improved readability in plots.
 
     Parameters
     ----------
     df : pandas.DataFrame or pandas.Series
-        A dataset containing Likert-style responses. Column names represent questions, and 
+        A dataset containing Likert-style responses. Column names represent questions, and
         cell values represent the responses.
     scale : list
-        The Likert scale used for validation. This should be a list of possible response values, 
+        The Likert scale used for validation. This should be a list of possible response values,
         ordered from the lowest to the highest.
     label_max_width : int, optional (default=30)
-        The maximum character width for question labels before wrapping text for better 
+        The maximum character width for question labels before wrapping text for better
         readability in visualizations.
     drop_zeros : bool, optional (default=False)
-        If True, drops columns where the response count is zero (e.g., removing "0" values 
+        If True, drops columns where the response count is zero (e.g., removing "0" values
         if the scale includes it).
 
     Returns
     -------
     pandas.DataFrame
-        A DataFrame where rows represent questions and columns correspond to the response 
+        A DataFrame where rows represent questions and columns correspond to the response
         categories in the given Likert scale, containing the count of each response.
 
     Raises
     ------
     PlotLikertError
-        If a response in the dataset does not match any value in the provided Likert scale, 
-        indicating potential issues such as extra whitespace, incorrect capitalization, 
+        If a response in the dataset does not match any value in the provided Likert scale,
+        indicating potential issues such as extra whitespace, incorrect capitalization,
         or mismatched data types (e.g., int vs. str).
 
     Notes
@@ -938,7 +887,7 @@ def raw_scale(df: pd.DataFrame) -> pd.DataFrame:
     return scale
 
 
-def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
+def _configure_data_for_heatmap(fileName: str, data: pd.DataFrame, group: str):
     """
     Prepares and structures survey data for heatmap visualization.
 
@@ -965,21 +914,41 @@ def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
 
     """
     # Verify data
-    valid_groups = {"G1", "G2", "G3"}  # Se debe actualizar según corresponda
+    valid_groups = {"G1", "G2", "G3", "G4", "G5"}  # Se debe actualizar según corresponda
     if group not in valid_groups:
-        raise ValueError(f"Invalid group '{group}'. Expected one of {valid_groups}.")
-
+        if group is None and "apca" in fileName:
+            pass
+        else:
+            raise ValueError(
+                f"Invalid group '{group}'. Expected one of {valid_groups}."
+            )
+    
     try:
         # Data cleaning
         data_cleaned_1 = cleanData(
-            df, group=group, survey_number=0, replace_numerical_data=False
-        ).clean_data()
+            data,
+            group=group,
+            file_name=fileName,
+            survey_number=0,
+            replace_numerical_data=False,
+            convert_to_numerical=True,
+        ).clean_data()[0]
         data_cleaned_2 = cleanData(
-            df, group=group, survey_number=1, replace_numerical_data=False
-        ).clean_data()
+            data,
+            group=group,
+            file_name=fileName,
+            survey_number=1,
+            replace_numerical_data=False,
+            convert_to_numerical=True,
+        ).clean_data()[0]
         data_cleaned_3 = cleanData(
-            df, group=group, survey_number=2, replace_numerical_data=False
-        ).clean_data()
+            data,
+            group=group,
+            file_name=fileName,
+            survey_number=2,
+            replace_numerical_data=False,
+            convert_to_numerical=True,
+        ).clean_data()[0]
 
     except KeyError as e:
         raise KeyError(f"Column access error while processing group '{group}': {e}")
@@ -1011,7 +980,7 @@ def _configure_data_for_heatmap(df: pd.DataFrame, group: str):
 
 
 def _create_heatmap(
-    data: pd.DataFrame, type: str, group: str, **kwargs
+    data: pd.DataFrame, type: str, group: str, fileName: str, **kwargs
 ) -> matplotlib.axes.Axes:
     """
     Generates a heatmap to visualize survey data distributions.
@@ -1038,7 +1007,10 @@ def _create_heatmap(
     if data.empty:
         raise ValueError("The provided DataFrame is empty. Cannot generate heatmap.")
     if not isinstance(type, str) or not isinstance(group, str):
-        raise TypeError("The 'type' and 'group' arguments must be strings.")
+        if group is None and "apca" in fileName:
+            pass
+        else:
+            raise TypeError("The 'type' and 'group' arguments must be strings.")
 
     # initialize plot
     fig = plt.figure(figsize=(15, 9))
@@ -1050,10 +1022,21 @@ def _create_heatmap(
     # Add colorbar
     fig.colorbar(im, ax=axes)
 
+    # Select name
+    if isinstance(fileName, str):
+        plot_name = select_survey_name(
+            fileName
+        ).upper()  # Select the survey name based on df, it only works for df = str
+    else:
+        plot_name = "Survey"
+
     # Add titles and labels
     axes.set_yticks(range(len(data.index)))
     axes.set_yticklabels(data.index)
-    axes.set_title(f"{type} {group}", y=1.08, fontsize=30)
+    if group:
+        axes.set_title(f"{type} {plot_name} {group}", y=1.08, fontsize=30)
+    else:
+        axes.set_title(f"{type} {plot_name}", y=1.08, fontsize=30)
     axes.set_ylabel("Preguntas", fontsize=15)
     axes.set_xlabel("Pacientes", fontsize=15)
 
