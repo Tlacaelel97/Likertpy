@@ -10,7 +10,6 @@ def select_survey_name(file_name: str) -> str:
         if option.lower() in file_name.lower():
             return option
 
-
 def calculate_mode(
     data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame],
 ) -> pd.DataFrame:
@@ -157,7 +156,6 @@ def calculate_min(
         raise KeyError("Mismatched indices or columns in input DataFrames.") from e
 
     return min_data
-
 
 def calculate_gradient(
     data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame],
