@@ -3,6 +3,7 @@
 
 import pandas as pd
 import numpy as np
+import re
 
 def select_survey_name(file_name: str) -> str:
     options = ["apca", "msas", "pedsql"]
@@ -212,3 +213,35 @@ def calculate_gradient(
     # calculate the gradient as the mean of the differences between successive DataFrames
     mean_gradient = (data[2] - data[0]) / 2
     return mean_gradient
+
+def clean_column_names(fileName:str,df:pd.DataFrame) -> pd.DataFrame:
+    """
+
+    """
+
+    # Select and execute the appropriate cleaning function based on file name
+    survey_type = select_survey_name(fileName)
+    if survey_type == 'msas':
+        return _clean_msas_column_names(df)
+    elif survey_type == 'apca':
+        return clean_apca()
+    elif survey_type == 'pedsql':
+        return clean_pedsql()
+    else:
+        raise ValueError(f"Unsupported survey type in filename: {self.file_name}")
+        
+def _clean_msas_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Limpia los nombres de las columnas de un DataFrame eliminando cualquier texto antes del primer número encontrado
+    y removiendo el símbolo ']' si está al final del nombre de la columna.
+    
+    :param df: DataFrame de pandas con las columnas a limpiar.
+    :return: DataFrame con los nombres de las columnas modificados.
+    """
+    def clean_name(col_name: str) -> str:
+        match = re.search(r'\d+\)?\s*(.*)', col_name)
+        cleaned_name = match.group(1).strip() if match else col_name
+        return cleaned_name.rstrip(']')
+    
+    df = df.rename(columns={col: clean_name(col) for col in df.columns})
+    return df
