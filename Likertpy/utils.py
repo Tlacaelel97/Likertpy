@@ -224,11 +224,11 @@ def clean_column_names(fileName:str,df:pd.DataFrame) -> pd.DataFrame:
     if survey_type == 'msas':
         return _clean_msas_column_names(df)
     elif survey_type == 'apca':
-        return clean_apca()
+        return _clean_apca_column_names(df)
     elif survey_type == 'pedsql':
-        return clean_pedsql()
+        return _clean_pedsql_column_names(df)
     else:
-        raise ValueError(f"Unsupported survey type in filename: {self.file_name}")
+        raise ValueError(f"Unsupported survey type in filename: {fileName}")
         
 def _clean_msas_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -242,6 +242,43 @@ def _clean_msas_column_names(df: pd.DataFrame) -> pd.DataFrame:
         match = re.search(r'\d+\)?\s*(.*)', col_name)
         cleaned_name = match.group(1).strip() if match else col_name
         return cleaned_name.rstrip(']')
+    
+    df = df.rename(columns={col: clean_name(col) for col in df.columns})
+    return df
+
+def _clean_apca_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Renombra las columnas de un DataFrame en formato "SECCIÓN X, QY",
+    donde X es la sección identificada y QY es el número de la columna.
+    
+    :param df: DataFrame de pandas con las columnas a renombrar.
+    :return: DataFrame con los nombres de las columnas modificados.
+    """
+    def rename_column(col_name: str, index: int) -> str:
+        section_match = re.search(r'^(SECCIÓN\s+[A-Z])', col_name)
+        section = section_match.group(1) if section_match else "SECCIÓN"
+        return f"{section}, Q{index + 1}"
+    
+    df = df.rename(columns={col: rename_column(col, idx) for idx, col in enumerate(df.columns)})
+    return df
+
+def _clean_pedsql_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Extrae la pregunta de los nombres de las columnas, tomando el texto que se encuentra entre corchetes
+    en el formato "[N. Pregunta]", eliminando todo lo demás.
+    
+    Ejemplo:
+        Entrada:
+            Dolor y Molestias (problemas con...) [1. ¿Tienes dolores en tus huesos y/o músculos?]
+        Salida:
+            ¿Tienes dolores en tus huesos y/o músculos?
+    
+    :param df: DataFrame de pandas con las columnas a limpiar.
+    :return: DataFrame con los nombres de las columnas modificados.
+    """
+    def clean_name(col_name: str) -> str:
+        match = re.search(r'\[(?:\d+\.\s*)(.*?)\]$', col_name)
+        return match.group(1).strip() if match else col_name
     
     df = df.rename(columns={col: clean_name(col) for col in df.columns})
     return df
