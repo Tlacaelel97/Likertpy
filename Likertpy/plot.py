@@ -808,6 +808,10 @@ def _configure_data_for_heatmap(fileName: str, data: pd.DataFrame, group: str):
             replace_numerical_data=False,
             convert_to_numerical=True,
         ).clean_data()[0]
+
+        # Format column names for better readability
+        data_cleaned_1 = clean_column_names(select_survey_name(fileName),data_cleaned_1)
+        
         data_cleaned_2 = cleanData(
             data,
             group=group,
@@ -816,6 +820,9 @@ def _configure_data_for_heatmap(fileName: str, data: pd.DataFrame, group: str):
             replace_numerical_data=False,
             convert_to_numerical=True,
         ).clean_data()[0]
+        # Format column names for better readability
+        data_cleaned_2 = clean_column_names(select_survey_name(fileName),data_cleaned_2)
+
         data_cleaned_3 = cleanData(
             data,
             group=group,
@@ -824,6 +831,9 @@ def _configure_data_for_heatmap(fileName: str, data: pd.DataFrame, group: str):
             replace_numerical_data=False,
             convert_to_numerical=True,
         ).clean_data()[0]
+
+        # Format column names for better readability
+        data_cleaned_3 = clean_column_names(select_survey_name(fileName),data_cleaned_3)
 
     except KeyError as e:
         raise KeyError(f"Column access error while processing group '{group}': {e}")
