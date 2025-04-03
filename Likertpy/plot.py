@@ -267,7 +267,7 @@ def plot_likert(
     colors: builtin_colors.Colors = builtin_colors.default_msas,
     label_max_width: int = 30,
     drop_zeros: bool = False,
-    figsize=None,
+    figsize=(15, 9),
     xtick_interval: typing.Optional[int] = None,
     compute_percentages: bool = False,
     bar_labels: bool = False,
@@ -348,6 +348,9 @@ def plot_likert(
         df_cleaned, plot_scale = cleanData(
             df, group=group, survey_number=survey_number
         ).clean_data()
+
+    # Format column names for better readability
+    df_cleaned = clean_column_names(select_survey_name(df),df_cleaned)
 
     if format_scale:
         df_fixed = likert_response(df_cleaned, format_scale)

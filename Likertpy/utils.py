@@ -3,6 +3,7 @@
 
 import pandas as pd
 import numpy as np
+import re
 
 def select_survey_name(file_name: str) -> str:
     options = ["apca", "msas", "pedsql"]
@@ -212,3 +213,55 @@ def calculate_gradient(
     # calculate the gradient as the mean of the differences between successive DataFrames
     mean_gradient = (data[2] - data[0]) / 2
     return mean_gradient
+
+def clean_column_names(fileName:str,df:pd.DataFrame) -> pd.DataFrame:
+    """
+
+    """
+
+    # Select and execute the appropriate cleaning function based on file name
+    survey_type = select_survey_name(fileName)
+    if survey_type == 'msas':
+        return _clean_msas_column_names(df)
+    elif survey_type == 'apca':
+        return _clean_apca_column_names(df)
+    elif survey_type == 'pedsql':
+        return _clean_pedsql_column_names(df)
+    else:
+        raise ValueError(f"Unsupported survey type in filename: {fileName}")
+        
+def _clean_msas_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Renombra las columnas del DataFrame como Q1, Q2, Q3, ..., Qn según su índice.
+    
+    :param df: DataFrame de pandas con las columnas a renombrar.
+    :return: DataFrame con los nombres de las columnas modificados.
+    """
+    df = df.rename(columns={col: f"Q{idx + 1}" for idx, col in enumerate(df.columns)})
+    return df
+
+def _clean_apca_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Renombra las columnas de un DataFrame en formato "SECCIÓN X, QY",
+    donde X es la sección identificada y QY es el número de la columna.
+    
+    :param df: DataFrame de pandas con las columnas a renombrar.
+    :return: DataFrame con los nombres de las columnas modificados.
+    """
+    def rename_column(col_name: str, index: int) -> str:
+        section_match = re.search(r'^(SECCIÓN\s+[A-Z])', col_name)
+        section = section_match.group(1) if section_match else "SECCIÓN"
+        return f"{section}, Q{index + 1}"
+    
+    df = df.rename(columns={col: rename_column(col, idx) for idx, col in enumerate(df.columns)})
+    return df
+
+def _clean_pedsql_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Renombra las columnas del DataFrame como Q1, Q2, Q3, ..., Qn según su índice.
+    
+    :param df: DataFrame de pandas con las columnas a renombrar.
+    :return: DataFrame con los nombres de las columnas modificados.
+    """
+    df = df.rename(columns={col: f"Q{idx + 1}" for idx, col in enumerate(df.columns)})
+    return df
