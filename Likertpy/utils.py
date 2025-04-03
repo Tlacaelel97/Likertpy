@@ -232,18 +232,12 @@ def clean_column_names(fileName:str,df:pd.DataFrame) -> pd.DataFrame:
         
 def _clean_msas_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Limpia los nombres de las columnas de un DataFrame eliminando cualquier texto antes del primer número encontrado
-    y removiendo el símbolo ']' si está al final del nombre de la columna.
+    Renombra las columnas del DataFrame como Q1, Q2, Q3, ..., Qn según su índice.
     
-    :param df: DataFrame de pandas con las columnas a limpiar.
+    :param df: DataFrame de pandas con las columnas a renombrar.
     :return: DataFrame con los nombres de las columnas modificados.
     """
-    def clean_name(col_name: str) -> str:
-        match = re.search(r'\d+\)?\s*(.*)', col_name)
-        cleaned_name = match.group(1).strip() if match else col_name
-        return cleaned_name.rstrip(']')
-    
-    df = df.rename(columns={col: clean_name(col) for col in df.columns})
+    df = df.rename(columns={col: f"Q{idx + 1}" for idx, col in enumerate(df.columns)})
     return df
 
 def _clean_apca_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -264,21 +258,10 @@ def _clean_apca_column_names(df: pd.DataFrame) -> pd.DataFrame:
 
 def _clean_pedsql_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Extrae la pregunta de los nombres de las columnas, tomando el texto que se encuentra entre corchetes
-    en el formato "[N. Pregunta]", eliminando todo lo demás.
+    Renombra las columnas del DataFrame como Q1, Q2, Q3, ..., Qn según su índice.
     
-    Ejemplo:
-        Entrada:
-            Dolor y Molestias (problemas con...) [1. ¿Tienes dolores en tus huesos y/o músculos?]
-        Salida:
-            ¿Tienes dolores en tus huesos y/o músculos?
-    
-    :param df: DataFrame de pandas con las columnas a limpiar.
+    :param df: DataFrame de pandas con las columnas a renombrar.
     :return: DataFrame con los nombres de las columnas modificados.
     """
-    def clean_name(col_name: str) -> str:
-        match = re.search(r'\[(?:\d+\.\s*)(.*?)\]$', col_name)
-        return match.group(1).strip() if match else col_name
-    
-    df = df.rename(columns={col: clean_name(col) for col in df.columns})
+    df = df.rename(columns={col: f"Q{idx + 1}" for idx, col in enumerate(df.columns)})
     return df
