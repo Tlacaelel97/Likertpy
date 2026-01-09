@@ -25,6 +25,7 @@ import pandas as pd
 try:
     import matplotlib.axes
     import matplotlib.pyplot as plt
+    import matplotlib.container
 except RuntimeError as err:
     logging.error(
         "Couldn't import matplotlib, likely because this package is running in an environment that doesn't support it (i.e., without a graphical output). See error for more information."
@@ -107,7 +108,7 @@ class ConfigurePlot:
         else:
             middles = (
                 counts.iloc[:, 0:scale_middle].sum(axis=1)
-                + counts.iloc[:, scale_middle] / 2
+                + counts.iloc[:, scale_middle].divide(2)
             )
 
         center = middles.max()
@@ -125,7 +126,7 @@ class ConfigurePlot:
     def _set_x_labels(
         self,
         padded_counts: pd.DataFrame,
-        xtick_interval: int,
+        xtick_interval: typing.Optional[int],
         axes: matplotlib.axes.Axes,
         center: float,
         counts: pd.DataFrame,
@@ -189,7 +190,7 @@ class ConfigurePlot:
         self,
         axes: matplotlib.axes.Axes,
         compute_percentages: bool,
-        counts_sum: pd.DataFrame,
+        counts_sum: float,
         bar_labels_color,
         scale: list,
     ):
@@ -232,6 +233,7 @@ class ConfigurePlot:
         for i, segment in enumerate(
             axes.containers[1:]  # the first container is the padding
         ):
+            segment = typing.cast(matplotlib.container.BarContainer, segment)
             try:
                 labels = axes.bar_label(
                     segment,
@@ -263,7 +265,7 @@ def plot_likert(
     df: typing.Union[pd.DataFrame, pd.Series, str],
     survey_number: int,
     group: str = "",
-    format_scale: Scale = None,
+    format_scale: typing.Optional[Scale] = None,
     colors: builtin_colors.Colors = builtin_colors.default_msas,
     label_max_width: int = 30,
     drop_zeros: bool = False,
@@ -344,13 +346,18 @@ def plot_likert(
             data, group=group, file_name=df, survey_number=survey_number
         ).clean_data()
     # If needed, clean the data
-    if clean_data:
+    elif clean_data:
+        data_to_clean = df.to_frame() if isinstance(df, pd.Series) else df
         df_cleaned, plot_scale = cleanData(
-            df, group=group, survey_number=survey_number
+            data_to_clean, group=group, survey_number=survey_number
         ).clean_data()
+    else:
+        df_cleaned = df.to_frame() if isinstance(df, pd.Series) else df
+        plot_scale = format_scale if format_scale else raw_scale(df_cleaned).tolist() # type: ignore
 
     # Format column names for better readability
-    df_cleaned = clean_column_names(select_survey_name(df),df_cleaned)
+    if isinstance(df, str):
+        df_cleaned = clean_column_names(select_survey_name(df),df_cleaned)
 
     if format_scale:
         df_fixed = likert_response(df_cleaned, format_scale)
@@ -373,7 +380,7 @@ def plot_likert(
     final_rows, center, padded_counts = conf_plot._configure_rows(plot_scale, counts)
 
     # Start putting together the plot
-    axes = final_rows.plot.barh(stacked=True, color=colors, figsize=figsize, **kwargs)
+    axes = final_rows.plot(kind='barh', stacked=True, color=colors, figsize=figsize, **kwargs)   
 
     # Draw center line
     center_line = axes.axvline(center, linestyle="--", color="black", alpha=0.5)
@@ -383,6 +390,7 @@ def plot_likert(
     xvalues, xlabels = conf_plot._set_x_labels(
         padded_counts, xtick_interval, axes, center, counts
     )
+
 
     # Set xlabel
     if counts_are_percentages:
@@ -415,9 +423,8 @@ def plot_likert(
 
     # Add name
     if isinstance(df, str):
-        plot_name = select_survey_name(
-            df
-        )  # Select the survey name based on df, it only works for df = str
+        survey_name = select_survey_name(df)
+        plot_name = survey_name if survey_name else "Survey"
     else:
         plot_name = "Survey"
     axes.set_title(plot_name.upper(), fontsize=30)
@@ -426,7 +433,7 @@ def plot_likert(
 
 
 def plot_mode(
-    df: typing.Union[str, pd.DataFrame, pd.Series], group: str = None, **kwargs
+    df: typing.Union[str, pd.DataFrame, pd.Series], group: typing.Optional[str] = None, **kwargs
 ) -> matplotlib.axes.Axes:
     """
     Generates a heatmap representing the mode of survey responses for a given group.
@@ -460,13 +467,21 @@ def plot_mode(
         if df.empty:
             raise ValueError("The provided dataset is empty. Cannot compute mode.")
     if not isinstance(group, str):
-        if group is None and "apca" in df:
+        is_apca = False
+        if isinstance(df, str) and "apca" in df:
+            is_apca = True
+        elif isinstance(df, pd.DataFrame) and "apca" in df.columns:
+            is_apca = True
+            
+        if group is None and is_apca:
             pass
         else:
             raise TypeError("The 'group' argument must be a string.")
 
     if isinstance(df, str):
         data = FileRead(folder="IN", file=df).read_file_to_dataframe()
+    else:
+        data = df.to_frame() if isinstance(df, pd.Series) else df
     # Clean and parse data
     heathmap_data = _configure_data_for_heatmap(fileName=df, data=data, group=group)
 
@@ -521,6 +536,8 @@ def plot_max(
 
     if isinstance(df, str):
         data = FileRead(folder="IN", file=df).read_file_to_dataframe()
+    else:
+        data = df.to_frame() if isinstance(df, pd.Series) else df
     # Clean and parse data
     heathmap_data = _configure_data_for_heatmap(fileName=df, data=data, group=group)
 
@@ -575,6 +592,8 @@ def plot_min(
 
     if isinstance(df, str):
         data = FileRead(folder="IN", file=df).read_file_to_dataframe()
+    else:
+        data = df.to_frame() if isinstance(df, pd.Series) else df
     # Clean and parse data
     heathmap_data = _configure_data_for_heatmap(fileName=df, data=data, group=group)
 
@@ -603,6 +622,8 @@ def plot_gradient(
 
     if isinstance(df, str):
         data = FileRead(folder="IN", file=df).read_file_to_dataframe()
+    else:
+        data = df.to_frame() if isinstance(df, pd.Series) else df
     # Clean and parse data
     heathmap_data = _configure_data_for_heatmap(fileName=df, data=data, group=group)
 
@@ -660,7 +681,7 @@ def likert_counts(
     - It replaces long question labels with wrapped versions for better visualization.
     - It correctly aligns the response counts to match the order of the given Likert scale.
     """
-    if type(df) == pd.core.series.Series:
+    if isinstance(df, pd.Series):
         df = df.to_frame()
 
     def validate(value):
@@ -669,18 +690,12 @@ def likert_counts(
                 f"A response was found with value `{value}`, which is not one of the values in the provided scale: {scale}. If this is unexpected, you might want to double-check for extra whitespace, capitalization, spelling, or type (int versus str)."
             )
 
-    try:
-        df.map(validate)
-    except AttributeError:  # for compatibility with Pandas < 2.1.0
-        df.applymap(validate)
+    df.map(validate)
 
     # fix long questions for printing
     old_labels = list(df)
     new_labels = ["\n".join(wrap(str(l), label_max_width)) for l in old_labels]
-    if pd.__version__ >= "1.5.0":
-        df = df.set_axis(new_labels, axis=1, copy=True)
-    else:
-        df = df.set_axis(new_labels, axis=1, inplace=False)
+    df = df.set_axis(new_labels, axis=1, copy=True)
 
     counts_unordered = df.apply(lambda row: row.value_counts())
     counts = counts_unordered.reindex(scale).T
@@ -695,7 +710,7 @@ def likert_counts(
 
 def likert_percentages(
     df: pd.DataFrame, scale: Scale, width=30, zero=False
-) -> pd.DataFrame:
+) -> typing.Union[pd.DataFrame, pd.Series]:
     """
     Given a dataframe of Likert-style responses, returns a new one
     reporting the percentage of respondents that chose each response.
@@ -736,7 +751,7 @@ def _compute_counts_percentage(counts: pd.DataFrame) -> pd.DataFrame:
         warn(
             "In your data, not all questions have the same number of responses. i.e., different numbers of people answered each question. Therefore, the percentages aren't directly comparable: X% for one question represents a different number of responses than X% for another question, yet they will appear the same in the percentage graph. This may be misleading to your reader."
         )
-    return counts.divide(counts.sum(axis="columns"), axis="rows") * 100
+    return counts.divide(counts.sum(axis="columns"), axis="index") * 100
 
 
 def likert_response(df: pd.DataFrame, scale: Scale) -> pd.DataFrame:
@@ -753,7 +768,7 @@ def likert_response(df: pd.DataFrame, scale: Scale) -> pd.DataFrame:
     return df
 
 
-def raw_scale(df: pd.DataFrame) -> pd.DataFrame:
+def raw_scale(df: pd.DataFrame) -> pd.Series:
     """
     The purpose of this function is to determine the scale(s) used in the dataset.
     """
@@ -762,7 +777,7 @@ def raw_scale(df: pd.DataFrame) -> pd.DataFrame:
     return scale
 
 
-def _configure_data_for_heatmap(fileName: str, data: pd.DataFrame, group: str):
+def _configure_data_for_heatmap(fileName: typing.Union[str, pd.DataFrame, pd.Series], data: pd.DataFrame, group: typing.Optional[str]):
     """
     Prepares and structures survey data for heatmap visualization.
 
@@ -791,82 +806,54 @@ def _configure_data_for_heatmap(fileName: str, data: pd.DataFrame, group: str):
     # Verify data
     valid_groups = {"G1", "G2", "G3", "G4", "G5"}  # Se debe actualizar según corresponda
     if group not in valid_groups:
-        if group is None and "apca" in fileName:
+        is_apca = False
+        if isinstance(fileName, str) and "apca" in fileName:
+            is_apca = True
+        elif isinstance(fileName, pd.DataFrame) and "apca" in fileName.columns:
+            is_apca = True
+            
+        if group is None and is_apca:
             pass
         else:
             raise ValueError(
                 f"Invalid group '{group}'. Expected one of {valid_groups}."
-            )
-    
+            )    
     try:
         # Data cleaning
-        data_cleaned_1 = cleanData(
-            data,
-            group=group,
-            file_name=fileName,
-            survey_number=0,
-            replace_numerical_data=False,
-            convert_to_numerical=True,
-        ).clean_data()[0]
-
+        data_cleaned_1 = cleanData(data,group=group,file_name=fileName,survey_number=0,replace_numerical_data=False,convert_to_numerical=True,).clean_data()[0]
         # Format column names for better readability
-        data_cleaned_1 = clean_column_names(select_survey_name(fileName),data_cleaned_1)
-        
-        data_cleaned_2 = cleanData(
-            data,
-            group=group,
-            file_name=fileName,
-            survey_number=1,
-            replace_numerical_data=False,
-            convert_to_numerical=True,
-        ).clean_data()[0]
+        data_cleaned_1 = clean_column_names(select_survey_name(fileName),data_cleaned_1)       
+        data_cleaned_2 = cleanData(data,group=group,file_name=fileName,survey_number=1,replace_numerical_data=False,convert_to_numerical=True,).clean_data()[0]
         # Format column names for better readability
         data_cleaned_2 = clean_column_names(select_survey_name(fileName),data_cleaned_2)
-
-        data_cleaned_3 = cleanData(
-            data,
-            group=group,
-            file_name=fileName,
-            survey_number=2,
-            replace_numerical_data=False,
-            convert_to_numerical=True,
-        ).clean_data()[0]
-
+        data_cleaned_3 = cleanData(data,group=group,file_name=fileName,survey_number=2,replace_numerical_data=False,convert_to_numerical=True,).clean_data()[0]
         # Format column names for better readability
         data_cleaned_3 = clean_column_names(select_survey_name(fileName),data_cleaned_3)
-
     except KeyError as e:
         raise KeyError(f"Column access error while processing group '{group}': {e}")
-
     except ValueError as e:
         raise ValueError(f"Error while cleaning data for group '{group}': {e}")
-
     # Verufy that DataFrames are not emptys after cleaning
-    if data_cleaned_1.empty or data_cleaned_2.empty or data_cleaned_3.empty:
-        raise ValueError(
-            f"Cleaned data for group '{group}' is empty. Check the dataset."
-        )
 
+    if data_cleaned_1.empty or data_cleaned_2.empty or data_cleaned_3.empty:
+        raise ValueError(f"Cleaned data for group '{group}' is empty. Check the dataset.")
+    
     try:
         # Reset index
         data_cleaned_1 = data_cleaned_1.reset_index(drop=True)
         data_cleaned_2 = data_cleaned_2.reset_index(drop=True)
         data_cleaned_3 = data_cleaned_3.reset_index(drop=True)
-
         # Transpose data
         data_transpose_1 = data_cleaned_1.transpose()
         data_transpose_2 = data_cleaned_2.transpose()
         data_transpose_3 = data_cleaned_3.transpose()
-
     except KeyError as e:
         raise KeyError(f"Unexpected KeyError while restructuring data: {e}")
-
+    
     return data_transpose_1, data_transpose_2, data_transpose_3
 
 
-def _create_heatmap(
-    data: pd.DataFrame, type: str, group: str, fileName: str, **kwargs
-) -> matplotlib.axes.Axes:
+def _create_heatmap(data: pd.DataFrame, type: str, group: typing.Optional[str], fileName: typing.Union[str, pd.DataFrame, pd.Series], **kwargs) -> matplotlib.axes.Axes:
     """
     Generates a heatmap to visualize survey data distributions.
 
@@ -892,29 +879,36 @@ def _create_heatmap(
     if data.empty:
         raise ValueError("The provided DataFrame is empty. Cannot generate heatmap.")
     if not isinstance(type, str) or not isinstance(group, str):
-        if group is None and "apca" in fileName:
+        is_apca = False
+        if isinstance(fileName, str) and "apca" in fileName:
+            is_apca = True
+        elif isinstance(fileName, pd.DataFrame) and "apca" in fileName.columns:
+            is_apca = True
+            
+        if group is None and is_apca:
             pass
         else:
             raise TypeError("The 'type' and 'group' arguments must be strings.")
-
     # initialize plot
     fig = plt.figure(figsize=(15, 9))
     axes = fig.gca()
-
     # plot mode
     im = axes.imshow(data, cmap="coolwarm", aspect="auto")
 
+    # Add grid
+    axes.set_xticks(np.arange(data.shape[1]+1)-.5, minor=True)
+    axes.set_yticks(np.arange(data.shape[0]+1)-.5, minor=True)
+    axes.grid(which="minor", color="w", linestyle='-', linewidth=2)
+    axes.tick_params(which="minor", bottom=False, left=False)
+
     # Add colorbar
     fig.colorbar(im, ax=axes)
-
     # Select name
     if isinstance(fileName, str):
-        plot_name = select_survey_name(
-            fileName
-        ).upper()  # Select the survey name based on df, it only works for df = str
+        survey_name = select_survey_name(fileName)
+        plot_name = survey_name.upper() if survey_name else "SURVEY"
     else:
         plot_name = "Survey"
-
     # Add titles and labels
     axes.set_yticks(range(len(data.index)))
     axes.set_yticklabels(data.index)
@@ -924,7 +918,5 @@ def _create_heatmap(
         axes.set_title(f"{type} {plot_name}", y=1.08, fontsize=30)
     axes.set_ylabel("Preguntas", fontsize=15)
     axes.set_xlabel("Pacientes", fontsize=15)
-
     plt.show()
-
     return axes

@@ -4,12 +4,16 @@
 import pandas as pd
 import numpy as np
 import re
+import typing
 
-def select_survey_name(file_name: str) -> str:
+def select_survey_name(file_name: typing.Union[str, pd.DataFrame, pd.Series, None]) -> typing.Optional[str]:
+    if not isinstance(file_name, str):
+        return None
     options = ["apca", "msas", "pedsql"]
     for option in options:
         if option.lower() in file_name.lower():
             return option
+    return None
 
 def calculate_mode(
     data: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame],
@@ -214,7 +218,7 @@ def calculate_gradient(
     mean_gradient = (data[2] - data[0]) / 2
     return mean_gradient
 
-def clean_column_names(fileName:str,df:pd.DataFrame) -> pd.DataFrame:
+def clean_column_names(fileName: typing.Union[str, pd.DataFrame, pd.Series, None], df: pd.DataFrame) -> pd.DataFrame:
     """
 
     """
@@ -228,7 +232,9 @@ def clean_column_names(fileName:str,df:pd.DataFrame) -> pd.DataFrame:
     elif survey_type == 'pedsql':
         return _clean_pedsql_column_names(df)
     else:
-        raise ValueError(f"Unsupported survey type in filename: {fileName}")
+        if isinstance(fileName, str):
+            raise ValueError(f"Unsupported survey type in filename: {fileName}")
+        return df
         
 def _clean_msas_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """

@@ -1,13 +1,13 @@
+"""A utility class for cleaning and preprocessing survey data."""
 import Likertpy.scales
 from Likertpy.utils import select_survey_name
 
 import pandas as pd
 import numpy as np
+import typing
 
 class cleanData:
     """
-    A utility class for cleaning and preprocessing survey data.
-
     The `CleanData` class is designed to handle typical data issues such as:
     - Empty cells or missing values.
     - Data in an incorrect format.
@@ -46,8 +46,8 @@ class cleanData:
     def __init__(
         self,
         data: pd.DataFrame,
-        group: str,
-        file_name: str=None,
+        group: typing.Optional[str],
+        file_name: typing.Union[str, pd.DataFrame, pd.Series, None] = None,
         survey_number: int = 0,
         replace_numerical_data: bool = True,
         convert_to_numerical: bool = False,
