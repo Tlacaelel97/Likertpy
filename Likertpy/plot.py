@@ -433,7 +433,9 @@ def plot_likert(
         plot_name = survey_name if survey_name else "Survey"
     else:
         plot_name = "Survey"
-    axes.set_title(plot_name.upper(), fontsize=30)
+    
+    full_title = f"{plot_name.upper()} {group}" if group else plot_name.upper()
+    axes.set_title(full_title, fontsize=30)
     plt.show()
     return axes
 
