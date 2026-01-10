@@ -44,9 +44,7 @@ msas_G4: Scale = [
     "Mucho",
 ]
 
-apca: Scale = [
-    0,1,2,3,4,5
-]
+apca: Scale = ["0", "1", "2", "3", "4", "5"]
 
 pedsql: Scale = [
     "Nunca",

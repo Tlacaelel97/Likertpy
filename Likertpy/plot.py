@@ -114,9 +114,10 @@ class ConfigurePlot:
         center = middles.max()
 
         padding_values = (middles - center).abs()
+        padding_values.name = "PADDING_COLUMN_INTERNAL"
         padded_counts = pd.concat([padding_values, counts], axis=1)
         # Hide the padding row from the legend
-        padded_counts = padded_counts.rename({0: ""}, axis=1)
+        padded_counts = padded_counts.rename({"PADDING_COLUMN_INTERNAL": ""}, axis=1)
 
         # Reverse rows to keep the questions in order
         # (Otherwise, the plot function shows the last one at the top.)
@@ -338,6 +339,11 @@ def plot_likert(
     """
 
     conf_plot = ConfigurePlot()
+    
+    # Auto-select colors for APCA if default colors are used and survey is APCA (via filename)
+    if isinstance(df, str) and select_survey_name(df) == 'apca' and colors == builtin_colors.default_msas:
+        colors = builtin_colors.apca_colors
+
     # If a string is passed, read the file
     if isinstance(df, str):
         data = FileRead(folder="IN", file=df).read_file_to_dataframe()

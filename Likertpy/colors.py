@@ -17,6 +17,16 @@ default_msas: Colors = [
     "firebrick",
 ]
 
+apca_colors: Colors = [
+    TRANSPARENT,
+    "darkblue",
+    "cornflowerblue",
+    "gainsboro",
+    "lightcoral",
+    "firebrick",
+    "maroon",
+]
+
 
 default: Colors = [
     TRANSPARENT,

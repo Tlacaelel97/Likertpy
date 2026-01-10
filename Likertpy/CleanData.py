@@ -143,6 +143,11 @@ class cleanData:
         data_apca = data_apca.drop("¿Quién responde las preguntas?", axis=1)
         data_apca = data_apca.drop("folio", axis=1)
         data_apca = data_apca.drop("Encuesta", axis=1)
+
+        # Convert to string to match scale
+        data_apca = data_apca.astype(str)
+        # Remove ".0" if present (from float conversion)
+        data_apca = data_apca.map(lambda x: x.replace(".0", "") if isinstance(x, str) else x)
         
         return data_apca, Likertpy.scales.apca
 
